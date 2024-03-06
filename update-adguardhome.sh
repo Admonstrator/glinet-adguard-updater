@@ -179,14 +179,14 @@ if [ "$answer" != "${answer#[Yy]}" ]; then
     echo "Restarting AdGuard Home ..."
     /etc/init.d/adguardhome restart 2 &>/dev/null
     # Make persistance
-    echo "The update was successful. Do you want to make the installation persistance?"
+    echo "The update was successful. Do you want to make the installation permanent?"
     echo "This will make your AdGuard Home config persistant - even after a firmware up-/ or downgrade."
     echo "It could lead to issues, even if not likely. Just keep that in mind."
     echo "In worst case, you might need to remove the config from /etc/sysupgrade.conf and /etc/rc.local."
-    echo "Do you want to create persistance? (y/N)"
+    echo "Do you want to make the installation permanent? (y/N)"
     read answer_create_persistance
     if [ "$answer_create_persistance" != "${answer_create_persistance#[Yy]}" ]; then
-        echo "Creating persistance ..."
+        echo "Making installation permanent ..."
         create_persistance_script
         upgrade_persistance
         /usr/bin/enable-adguardhome-update-check
