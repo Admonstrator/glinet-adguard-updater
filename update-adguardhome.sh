@@ -5,7 +5,8 @@
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
 # Date: 2024-03-06
-# Version: 0.1
+# Updated: 2024-03-07
+# Version: 0.2
 #
 # Usage: ./update-adguardhome.sh [--ignore-free-space]
 # Warning: This script might potentially harm your router. Use it at your own risk.
@@ -168,6 +169,11 @@ if [ "$answer" != "${answer#[Yy]}" ]; then
     # Stop AdGuardHome
     echo "Stopping Adguard Home ..."
     /etc/init.d/adguardhome stop 2 &>/dev/null
+    sleep 2
+    # Stop it by killing the process if it's still running
+    if pgrep AdGuardHome; then
+        killall AdGuardHome
+    fi
     # Remove old AdGuardHome
     echo "Moving AdGuardHome to /usr/bin ..."
     rm /usr/bin/AdGuardHome
