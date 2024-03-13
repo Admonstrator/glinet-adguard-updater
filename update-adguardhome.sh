@@ -4,9 +4,9 @@
 # Description: This script updates AdGuardHome to the latest version.
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
-# Date: 2024-03-06
+# Date: 2024-03-13
 # Updated: 2024-03-07
-# Version: 0.2
+# Version: 0.3
 #
 # Usage: ./update-adguardhome.sh [--ignore-free-space]
 # Warning: This script might potentially harm your router. Use it at your own risk.
@@ -90,9 +90,9 @@ EOF
 # Function for persistance
 upgrade_persistance() {
     echo "Modifying /etc/sysupgrade.conf ..."
-    # If entry "/root/AdGuardHome_backup.tar.gz" is not found in /etc/sysupgrade.conf
-    if ! grep -q "/root/AdGuardHome_backup.tar.gz" /etc/sysupgrade.conf; then
-        echo "/root/AdGuardHome_backup.tar.gz" >>/etc/sysupgrade.conf
+    # Removing old entry because it's not needed anymore
+    if grep -q "/root/AdGuardHome_backup.tar.gz" /etc/sysupgrade.conf; then
+        sed -i "/root\/AdGuardHome_backup.tar.gz/d" /etc/sysupgrade.conf
     fi
     # If entry "/etc/AdGuardHome" is not found in /etc/sysupgrade.conf
     if ! grep -q "/etc/AdGuardHome" /etc/sysupgrade.conf; then
