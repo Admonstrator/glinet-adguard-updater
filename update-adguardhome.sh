@@ -6,7 +6,7 @@
 # Author: Admon
 # Date: 2024-03-13
 # Updated: 2024-03-07
-# Version: 0.3
+SCRIPT_VERSION="2024.04.13.01"
 #
 # Usage: ./update-adguardhome.sh [--ignore-free-space]
 # Warning: This script might potentially harm your router. Use it at your own risk.
@@ -112,6 +112,28 @@ upgrade_persistance() {
     fi
 }
 
+invoke_update() {
+     SCRIPT_VERSION_NEW=$(curl -s "https://raw.githubusercontent.com/Admonstrator/glinet.forum/main/scripts/update-adguardhome/update-adguardhome.sh" | grep -o 'SCRIPT_VERSION="[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}\.[0-9]\{2\}"' | cut -d '"' -f 2 || echo "Failed to retrieve script version")
+    if [ "$SCRIPT_VERSION_NEW" != "$SCRIPT_VERSION" ]; then
+        echo -e "\033[33mA new version of this script is available: $SCRIPT_VERSION_NEW\033[0m"
+        echo -e "\033[33mThe script will now be updated ...\033[0m"
+        wget -qO /tmp/update-adguardhome.sh "https://raw.githubusercontent.com/Admonstrator/glinet.forum/main/scripts/update-adguardhome/update-adguardhome.sh"
+        # Get current script path
+        SCRIPT_PATH=$(readlink -f "$0")
+        # Replace current script with updated script
+        rm "$SCRIPT_PATH"
+        mv /tmp/update-adguardhome.sh "$SCRIPT_PATH"
+        chmod +x "$SCRIPT_PATH"
+        echo -e "\033[32mThe script has been updated successfully. It will restart in 3 seconds ...\033[0m"
+        sleep 3
+        exec "$SCRIPT_PATH" "$@"
+    else
+        echo -e "\033[32mYou are using the latest version of this script!\033[0m"
+    fi
+}
+
+# Check if the script is up to date
+invoke_update "$@"
 
 echo "Another GL.iNET router script by Admon for the GL.iNET community"
 echo "---"
