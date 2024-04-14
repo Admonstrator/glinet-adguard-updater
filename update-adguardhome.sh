@@ -6,52 +6,13 @@
 # Author: Admon
 # Date: 2024-03-13
 # Updated: 2024-03-07
-SCRIPT_VERSION="2024.04.13.01"
+SCRIPT_VERSION="2024.04.14.01"
 #
 # Usage: ./update-adguardhome.sh [--ignore-free-space]
 # Warning: This script might potentially harm your router. Use it at your own risk.
 #
 # Populate variables
-AVAILABLE_SPACE=$(df -k / | tail -n 1 | awk '{print $4}')
-ARCH=$(uname -m)
-FIRMWARE_VERSION=$(cut -c1 </etc/glversion)
 TEMP_FILE="/tmp/AdGuardHome.tar.gz"
-
-# Detect firmware version
-# Only continue if firmware version is 4 or higher
-if [ "${FIRMWARE_VERSION}" -lt 4 ]; then
-    echo "This script only works on firmware version 4 or higher."
-    exit 1
-fi
-
-# Check if --ignore-free-space is used
-if [ "$1" = "--ignore-free-space" ]; then
-    IGNORE_FREE_SPACE=1
-else
-    IGNORE_FREE_SPACE=0
-fi
-
-# Choose AGH_VERSION_NEW based on architecture
-if [ "$ARCH" = "aarch64" ]; then
-    AGH_VERSION_NEW="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz"
-elif [ "$ARCH" = "armv7l" ]; then
-    AGH_VERSION_NEW="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_armv7.tar.gz"
-else
-    echo "This script only works on arm64 and armv7."
-    exit 1
-fi
-
-if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
-    echo "Skipping free space check, because --ignore-free-space is used"
-else
-    if [ "$AVAILABLE_SPACE" -lt 35000 ]; then
-        echo "Not enough space available. Please free up some space and try again."
-        echo "The script needs at least 35 MB of free space."
-        echo "---"
-        echo "On devices with less internal storage, you can use --ignore-free-space to continue."
-        exit 1
-    fi
-fi
 
 # Function for backup
 backup() {
@@ -132,7 +93,67 @@ invoke_update() {
     fi
 }
 
+
+preflight_check() {
+    AVAILABLE_SPACE=$(df -k / | tail -n 1 | awk '{print $4/1024}')
+    AVAILABLE_SPACE=$(printf "%.0f" "$AVAILABLE_SPACE")
+    ARCH=$(uname -m)
+    FIRMWARE_VERSION=$(cut -c1 </etc/glversion)
+    PREFLIGHT=0
+
+    echo "Checking if prerequisites are met ..."
+    if [ "${FIRMWARE_VERSION}" -lt 4 ]; then
+        echo -e "\033[31mx\033[0m ERROR: This script only works on firmware version 4 or higher."
+        PREFLIGHT=1
+    else
+        echo -e "\033[32m✓\033[0m Firmware version: $FIRMWARE_VERSION"
+    fi
+    if [ "$ARCH" = "aarch64" ]; then
+        echo -e "\033[32m✓\033[0m Architecture: arm64"
+        AGH_VERSION_NEW="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz"
+    elif [ "$ARCH" = "armv7l" ]; then
+        echo -e "\033[32m✓\033[0m Architecture: armv7"
+        AGH_VERSION_NEW="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_armv7.tar.gz"
+    else
+        echo -e "\033[31mx\033[0m ERROR: This script only works on arm64 and armv7."
+        PREFLIGHT=1
+    fi
+    if [ "$AVAILABLE_SPACE" -lt 35 ]; then
+        echo -e "\033[31mx\033[0m ERROR: Not enough space available. Please free up some space and try again."
+        echo "The script needs at least 35 MB of free space. Available space: $AVAILABLE_SPACE MB"
+        echo "If you want to continue, you can use --ignore-free-space to ignore this check."
+        if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
+            echo -e "\033[31mWARNING: --ignore-free-space flag is used. Continuing without enough space ...\033[0m"
+            echo -e "\033[31mCurrent available space: $AVAILABLE_SPACE MB\033[0m"
+        else
+            PREFLIGHT=1
+        fi
+    else
+        echo -e "\033[32m✓\033[0m Available space: $AVAILABLE_SPACE MB"
+    fi
+    # Check if curl is present
+    if ! command -v curl >/dev/null; then
+        echo -e "\033[31mx\033[0m curl is not installed."
+        PREFLIGHT=1
+    else
+        echo -e "\033[32m✓\033[0m curl is installed."
+    fi
+    if ! command -v wget >/dev/null; then
+        echo -e "\033[31mx\033[0m wget is not installed."
+        PREFLIGHT=1
+    else
+        echo -e "\033[32m✓\033[0m wget is installed."
+    fi
+    if [ "$PREFLIGHT" -eq "1" ]; then
+        echo -e "\033[31mERROR: Prerequisites are not met. Exiting ...\033[0m"
+        exit 1
+    else
+        echo -e "\033[32m✓\033[0m Prerequisites are met."
+    fi
+}
+
 # Check if the script is up to date
+preflight_check
 invoke_update "$@"
 
 echo "Another GL.iNET router script by Admon for the GL.iNET community"
