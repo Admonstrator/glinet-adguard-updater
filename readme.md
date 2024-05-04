@@ -15,7 +15,7 @@ Run the script with the following command:
 You can run it without cloning the repository by using the following command:
 
 ```shell
-wget -O update-adguardhome.sh https://raw.githubusercontent.com/Admonstrator/glinet.forum/main/scripts/update-adguardhome/update-adguardhome.sh && sh update-adguardhome.sh
+wget -O update-adguardhome.sh https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh && sh update-adguardhome.sh
 ```
 
 ## Running on devices with low free space
