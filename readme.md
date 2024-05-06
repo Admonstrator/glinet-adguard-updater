@@ -1,5 +1,7 @@
 # AdGuard Home Update Script for GL.iNet Routers
 
+<img src="images/screen.jpg" width="400" align="right" alt="Profile Picture" style="border-radius: 10%;">
+
 This script is designed to update AdGuard Home on GL.iNet routers.
 
 It was created by [Admon](https://forum.gl-inet.com/u/admon/) for the GL.iNet community and tested on the MT-6000 (Flint2) with firmware 4.6.7.
