@@ -1,12 +1,15 @@
 #!/bin/sh
-#
+# shellcheck shell=dash
+# NOTE: 'echo $SHELL' reports '/bin/ash' on the routers, see:
+# - https://en.wikipedia.org/wiki/Almquist_shell#Embedded_Linux
+# - https://github.com/koalaman/shellcheck/issues/1841
 #
 # Description: This script updates AdGuardHome to the latest version.
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
 # Date: 2024-03-13
-# Updated: 2024-03-07
-SCRIPT_VERSION="2024.05.04.02"
+# Updated: 2024-05-06
+SCRIPT_VERSION="2024.05.06.01"
 #
 # Usage: ./update-adguardhome.sh [--ignore-free-space]
 # Warning: This script might potentially harm your router. Use it at your own risk.
@@ -14,17 +17,24 @@ SCRIPT_VERSION="2024.05.04.02"
 # Populate variables
 TEMP_FILE="/tmp/AdGuardHome.tar.gz"
 REPOSITORY="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+INFO='\033[0m' # No Color
+IGNORE_FREE_SPACE=0
 
 # Function for backup
 backup() {
-    echo "Creating backup of AdGuard Home config ..."
-    tar czf /root/AdGuardHome_backup.tar.gz /etc/AdGuardHome
-    echo "Backup created: /root/AdGuardHome_backup.tar.gz"
+    log "INFO" "Creating backup of AdGuard Home config ..."
+    cd /etc
+    tar czf /root/AdGuardHome_backup.tar.gz AdGuardHome
+    cd - >/dev/null
+    log "INFO" "Backup created: /root/AdGuardHome_backup.tar.gz"
 }
 
 # Function for creating the persistance script
 create_persistance_script() {
-    echo "Creating persistance script in /usr/bin/enable-adguardhome-update-check ..."
+    log "INFO" "Creating persistance script in /usr/bin/enable-adguardhome-update-check ..."
     cat <<EOF >/usr/bin/enable-adguardhome-update-check
     #!/bin/sh
     # This script enables the update check for AdGuard Home
@@ -43,7 +53,7 @@ EOF
     chmod +x /usr/bin/enable-adguardhome-update-check
 
     # Creating cron job
-    echo "Creating entry in rc.local ..."
+    log "INFO" "Creating entry in rc.local ..."
     if ! grep -q "/usr/bin/enable-adguardhome-update-check" /etc/rc.local; then
         sed -i "/exit 0/i . /usr/bin/enable-adguardhome-update-check" "/etc/rc.local"
     fi
@@ -51,7 +61,7 @@ EOF
 
 # Function for persistance
 upgrade_persistance() {
-    echo "Modifying /etc/sysupgrade.conf ..."
+    log "INFO" "Modifying /etc/sysupgrade.conf ..."
     # Removing old entry because it's not needed anymore
     if grep -q "/root/AdGuardHome_backup.tar.gz" /etc/sysupgrade.conf; then
         sed -i "/root\/AdGuardHome_backup.tar.gz/d" /etc/sysupgrade.conf
@@ -75,10 +85,10 @@ upgrade_persistance() {
 }
 
 invoke_update() {
-     SCRIPT_VERSION_NEW=$(curl -s $REPOSITORY | grep -o 'SCRIPT_VERSION="[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}\.[0-9]\{2\}"' | cut -d '"' -f 2 || echo "Failed to retrieve script version")
+     SCRIPT_VERSION_NEW=$(curl -s $REPOSITORY | grep -o 'SCRIPT_VERSION="[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}\.[0-9]\{2\}"' | cut -d '"' -f 2 || log "FAIL" "Failed to retrieve script version")
     if [ "$SCRIPT_VERSION_NEW" != "$SCRIPT_VERSION" ]; then
-        echo -e "\033[33mA new version of this script is available: $SCRIPT_VERSION_NEW\033[0m"
-        echo -e "\033[33mThe script will now be updated ...\033[0m"
+        log "INFO" "A new version of this script is available: $SCRIPT_VERSION_NEW"
+        log "INFO" "The script will now be updated ..."
         wget -qO /tmp/update-adguardhome.sh $REPOSITORY
         # Get current script path
         SCRIPT_PATH=$(readlink -f "$0")
@@ -86,11 +96,11 @@ invoke_update() {
         rm "$SCRIPT_PATH"
         mv /tmp/update-adguardhome.sh "$SCRIPT_PATH"
         chmod +x "$SCRIPT_PATH"
-        echo -e "\033[32mThe script has been updated successfully. It will restart in 3 seconds ...\033[0m"
+       log "SUCCESS" "The script has been updated successfully. It will restart in 3 seconds ..."
         sleep 3
         exec "$SCRIPT_PATH" "$@"
     else
-        echo -e "\033[32mYou are using the latest version of this script!\033[0m"
+        log "SUCCESS" "You are using the latest version of this script!"
     fi
 }
 
@@ -102,97 +112,133 @@ preflight_check() {
     FIRMWARE_VERSION=$(cut -c1 </etc/glversion)
     PREFLIGHT=0
 
-    echo "Checking if prerequisites are met ..."
+    log "INFO" "Checking if prerequisites are met ..."
     if [ "${FIRMWARE_VERSION}" -lt 4 ]; then
-        echo -e "\033[31mx\033[0m ERROR: This script only works on firmware version 4 or higher."
+        log "ERROR" "This script only works on firmware version 4 or higher."
         PREFLIGHT=1
     else
-        echo -e "\033[32m✓\033[0m Firmware version: $FIRMWARE_VERSION"
+        log "SUCCESS" "Firmware version: $FIRMWARE_VERSION"
     fi
     if [ "$ARCH" = "aarch64" ]; then
-        echo -e "\033[32m✓\033[0m Architecture: arm64"
+        log "SUCCESS" "Architecture: arm64"
         AGH_VERSION_NEW="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz"
     elif [ "$ARCH" = "armv7l" ]; then
-        echo -e "\033[32m✓\033[0m Architecture: armv7"
+        log "SUCCESS" "Architecture: armv7"
         AGH_VERSION_NEW="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_armv7.tar.gz"
     else
-        echo -e "\033[31mx\033[0m ERROR: This script only works on arm64 and armv7."
+        log "ERROR" "This script only works on arm64 and armv7."
         PREFLIGHT=1
     fi
     if [ "$AVAILABLE_SPACE" -lt 35 ]; then
-        echo -e "\033[31mx\033[0m ERROR: Not enough space available. Please free up some space and try again."
-        echo "The script needs at least 35 MB of free space. Available space: $AVAILABLE_SPACE MB"
-        echo "If you want to continue, you can use --ignore-free-space to ignore this check."
+        log "ERROR" "Not enough space available. Please free up some space and try again."
+        log "ERROR" "The script needs at least 35 MB of free space. Available space: $AVAILABLE_SPACE MB"
+        log "ERROR" "If you want to continue, you can use --ignore-free-space to ignore this check."
         if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
-            echo -e "\033[31mWARNING: --ignore-free-space flag is used. Continuing without enough space ...\033[0m"
-            echo -e "\033[31mCurrent available space: $AVAILABLE_SPACE MB\033[0m"
+            log "WARNING" "--ignore-free-space flag is used. Continuing without enough space ..."
+            log "INFO" "Current available space: $AVAILABLE_SPACE MB"
         else
             PREFLIGHT=1
         fi
     else
-        echo -e "\033[32m✓\033[0m Available space: $AVAILABLE_SPACE MB"
+        log "SUCCESS" "Available space: $AVAILABLE_SPACE MB"
     fi
     # Check if curl is present
     if ! command -v curl >/dev/null; then
-        echo -e "\033[31mx\033[0m curl is not installed."
+        log "ERROR" "curl is not installed."
         PREFLIGHT=1
     else
-        echo -e "\033[32m✓\033[0m curl is installed."
+        log "SUCCESS" "curl is installed."
     fi
     if ! command -v wget >/dev/null; then
-        echo -e "\033[31mx\033[0m wget is not installed."
+        log "ERROR" "wget is not installed."
         PREFLIGHT=1
     else
-        echo -e "\033[32m✓\033[0m wget is installed."
+        log "SUCCESS" "wget is installed."
     fi
     if [ "$PREFLIGHT" -eq "1" ]; then
-        echo -e "\033[31mERROR: Prerequisites are not met. Exiting ...\033[0m"
+        log "ERROR" "Prerequisites are not met. Exiting ..."
         exit 1
     else
-        echo -e "\033[32m✓\033[0m Prerequisites are met."
+        log "SUCCESS" "Prerequisites are met."
     fi
+}
+
+invoke_intro() {
+    echo "┌────────────────────────────────────────────────────────────────────────┐"
+    echo "│ GL.iNet router script by Admon 🦭 for the GL.iNet community            |"
+    echo "| Version: $SCRIPT_VERSION                                                 |"
+    echo "├────────────────────────────────────────────────────────────────────────┤"
+    echo "│ WARNING: THIS SCRIPT MIGHT POTENTIALLY HARM YOUR ROUTER!               │"
+    echo "│ It's only recommended to use this script if you know what you're doing.│"
+    echo "├────────────────────────────────────────────────────────────────────────┤"
+    echo "│ This script will update AdGuard Home on your router.                   │"
+    echo "└────────────────────────────────────────────────────────────────────────┘"
+}
+
+log() {
+    local level=$1
+    local message=$2
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    local color=$INFO # Default to no color
+
+    # Assign color based on level
+    case "$level" in
+        ERROR)
+            level="x"
+            color=$RED
+            ;;
+        WARNING)
+            level="!"
+            color=$YELLOW
+            ;;
+        SUCCESS)
+            level="✓"
+            color=$GREEN
+            ;;
+        INFO)
+            level="→"
+            ;;
+    esac
+
+    echo -e "${color}[$timestamp] [$level] $message${INFO}"
 }
 
 # Check if the script is up to date
 preflight_check
 invoke_update "$@"
-
-echo "Another GL.iNET router script by Admon for the GL.iNET community"
-echo "---"
-echo -e "\033[31mWARNING: THIS SCRIPT MIGHT POTENTIALLY HARM YOUR ROUTER!\033[0m"
-echo -e "\033[31mIt's only recommended to use this script if you know what you're doing.\033[0m"
-echo "---"
-echo "This script will update AdGuard Home on your router."
-echo "Do you want to continue? (y/N)"
+invoke_intro
+echo -e "\033[93m┌──────────────────────────────────────────────────┐\033[0m"
+echo -e "\033[93m| Are you sure you want to continue? (y/N)         |\033[0m"
+echo -e "\033[93m└──────────────────────────────────────────────────┘\033[0m"
 read answer
 
 if [ "$answer" != "${answer#[Yy]}" ]; then
     # Ask for confirmation when --ignore-free-space is used
     if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
-        echo -e "\033[31m---\033[0m"
-        echo -e "\033[31mWARNING: --ignore-free-space is used. There will be no backup of your current config of AdGuard Home!\033[0m"
-        echo -e "\033[31mYou might need to reset your router to factory settings if something goes wrong.\033[0m"
-        echo -e "\033[31m---\033[0m"
-        echo "Are you sure you want to continue? (y/N)"
+        log "WARNING" "--ignore-free-space is used. There will be no backup of your current config of AdGuard Home!"
+        log "WARNING" "You might need to reset your router to factory settings if something goes wrong."
+        echo -e "\033[93m┌──────────────────────────────────────────────────┐\033[0m"
+        echo -e "\033[93m| Are you sure you want to continue? (y/N)         |\033[0m"
+        echo -e "\033[93m└──────────────────────────────────────────────────┘\033[0m"
         read answer
         if [ "$answer" != "${answer#[Yy]}" ]; then
-            echo "Ok, continuing ..."
+            log "INFO" "Ok, continuing ..."
         else
-            echo "Ok, see you next time!"
+            log "ERROR" "Ok, see you next time!"
             exit 0
         fi
     fi
     # Create backup of AdGuardHome
     if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
-        echo "Skipping backup, because --ignore-free-space is used"
+        log "WARNING" "Skipping backup, because --ignore-free-space is used"
     else
         backup
     fi
     # Download latest version of AdGuardHome
-    echo "Downloading latest Adguard Home version ..."
+    log "INFO" "Downloading latest Adguard Home version ..."
     wget -qO $TEMP_FILE $AGH_VERSION_NEW
     # Extracting
-    echo "Extracting Adguard Home ..."
+    log "INFO" "Extracting Adguard Home ..."
     # If directory already exists, remove it
     if [ -d /tmp/AdGuardHome ]; then
         rm -rf /tmp/AdGuardHome
@@ -204,45 +250,48 @@ if [ "$answer" != "${answer#[Yy]}" ]; then
     # Search for AdGuardHome binary
     AGH_BINARY=$(find /tmp/AdGuardHome -name AdGuardHome -type f)
     if [ -f $AGH_BINARY ]; then
-        echo "AdGuardHome binary found, download was successful!"
+        log "SUCCESS" "AdGuardHome binary found, download was successful!"
     else
-        echo "AdGuardHome binary not found. Exiting ..."
-        echo "Please report this issue on the GL.iNET forum."
+        log "ERROR" "AdGuardHome binary not found. Exiting ..."
+        log "ERROR" "Please report this issue on the GL.iNET forum."
         exit 1
     fi
     # Stop AdGuardHome
-    echo "Stopping Adguard Home ..."
+    log "INFO" "Stopping Adguard Home ..."
     /etc/init.d/adguardhome stop 2 &>/dev/null
-    sleep 2
+    sleep 4
     # Stop it by killing the process if it's still running
-    if pgrep AdGuardHome; then
-        killall AdGuardHome
+    AGH_PID=$(pgrep AdGuardHome)
+    if [ -n "$AGH_PID" ]; then
+        killall AdGuardHome 2>/dev/null
     fi
     # Remove old AdGuardHome
-    echo "Moving AdGuardHome to /usr/bin ..."
+    log "INFO" "Moving AdGuardHome to /usr/bin ..."
     rm /usr/bin/AdGuardHome
     mv $AGH_BINARY /usr/bin/AdGuardHome
     # Remove temporary files
-    echo "Removing temporary files ..."
+    log "INFO" "Removing temporary files ..."
     rm -rf /tmp/AdGuardHome
     # Restart AdGuardHome
-    echo "Restarting AdGuard Home ..."
+    log "INFO" "Restarting AdGuard Home ..."
     /etc/init.d/adguardhome restart 2 &>/dev/null
     # Make persistance
-    echo "The update was successful. Do you want to make the installation permanent?"
-    echo "This will make your AdGuard Home config persistant - even after a firmware up-/ or downgrade."
-    echo "It could lead to issues, even if not likely. Just keep that in mind."
-    echo "In worst case, you might need to remove the config from /etc/sysupgrade.conf and /etc/rc.local."
-    echo "Do you want to make the installation permanent? (y/N)"
+    echo -e "\033[93m┌──────────────────────────────────────────────────────────────────────────────────────────────────────────┐\033[0m"
+    echo -e "\033[93m| The update was successful. Do you want to make the installation permanent?                               |\033[0m"
+    echo -e "\033[93m| This will make your AdGuard Home config persistant - even after a firmware up-/ or downgrade.            |\033[0m"
+    echo -e "\033[93m| It could lead to issues, even if not likely. Just keep that in mind.                                     |\033[0m"
+    echo -e "\033[93m| In worst case, you might need to remove the config from /etc/sysupgrade.conf and /etc/rc.local.          |\033[0m"
+    echo -e "\033[93m| Do you want to make the installation permanent? (y/N)                                                    |\033[0m"
+    echo -e "\033[93m└──────────────────────────────────────────────────────────────────────────────────────────────────────────┘\033[0m"
     read answer_create_persistance
     if [ "$answer_create_persistance" != "${answer_create_persistance#[Yy]}" ]; then
-        echo "Making installation permanent ..."
+        log "INFO" "Making installation permanent ..."
         create_persistance_script
         upgrade_persistance
         /usr/bin/enable-adguardhome-update-check
     fi
 else
-    echo "Ok, see you next time!"
+    log "SUCCESS" "Ok, see you next time!"
 fi
-echo "Script finished."
+log "SUCCESS" "Script finished."
 exit 0
