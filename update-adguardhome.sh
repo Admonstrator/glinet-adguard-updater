@@ -9,14 +9,15 @@
 # Author: Admon
 # Date: 2024-03-13
 # Updated: 2024-05-06
-SCRIPT_VERSION="2024.05.06.01"
+SCRIPT_VERSION="2024.05.19.01"
+SCRIPT_NAME="update-adguardhome.sh"
+UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 #
 # Usage: ./update-adguardhome.sh [--ignore-free-space]
 # Warning: This script might potentially harm your router. Use it at your own risk.
 #
 # Populate variables
 TEMP_FILE="/tmp/AdGuardHome.tar.gz"
-REPOSITORY="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -85,22 +86,23 @@ upgrade_persistance() {
 }
 
 invoke_update() {
-     SCRIPT_VERSION_NEW=$(curl -s $REPOSITORY | grep -o 'SCRIPT_VERSION="[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}\.[0-9]\{2\}"' | cut -d '"' -f 2 || log "FAIL" "Failed to retrieve script version")
-    if [ "$SCRIPT_VERSION_NEW" != "$SCRIPT_VERSION" ]; then
-        log "INFO" "A new version of this script is available: $SCRIPT_VERSION_NEW"
-        log "INFO" "The script will now be updated ..."
-        wget -qO /tmp/update-adguardhome.sh $REPOSITORY
-        # Get current script path
-        SCRIPT_PATH=$(readlink -f "$0")
-        # Replace current script with updated script
-        rm "$SCRIPT_PATH"
-        mv /tmp/update-adguardhome.sh "$SCRIPT_PATH"
-        chmod +x "$SCRIPT_PATH"
-       log "SUCCESS" "The script has been updated successfully. It will restart in 3 seconds ..."
-        sleep 3
-        exec "$SCRIPT_PATH" "$@"
+    log "INFO" "Checking for script updates"
+    SCRIPT_VERSION_NEW=$(curl -s "$UPDATE_URL" | grep -o 'SCRIPT_VERSION="[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}\.[0-9]\{2\}"' | cut -d '"' -f 2 || echo "Failed to retrieve scriptversion")
+    if [ -n "$SCRIPT_VERSION_NEW" ] && [ "$SCRIPT_VERSION_NEW" != "$SCRIPT_VERSION" ]; then
+       log "WARNING" "A new version of the script is available: $SCRIPT_VERSION_NEW"
+       log "INFO" "Updating the script ..."
+       wget -qO /tmp/$SCRIPT_NAME "$UPDATE_URL"
+       # Get current script path
+       SCRIPT_PATH=$(readlink -f "$0")
+       # Replace current script with updated script
+       rm "$SCRIPT_PATH"
+       mv /tmp/$SCRIPT_NAME "$SCRIPT_PATH"
+       chmod +x "$SCRIPT_PATH"
+       log "INFO" "The script has been updated. It will now restart ..."
+       sleep 3
+       exec "$SCRIPT_PATH" "$@"
     else
-        log "SUCCESS" "You are using the latest version of this script!"
+        log "SUCCESS" "The script is up to date"
     fi
 }
 
