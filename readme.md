@@ -4,7 +4,7 @@
 
 This script is designed to update AdGuard Home on GL.iNet routers.
 
-It was created by [Admon](https://forum.gl-inet.com/u/admon/) for the GL.iNet community and tested on the MT-6000 (Flint2) with firmware 4.5.8 but works fine on nearly all GL.iNet routers.
+It was created by [Admon](https://forum.gl-inet.com/u/admon/) for the GL.iNet community and tested on the MT-6000 (Flint2) with firmware 4.6.0 but works fine on nearly all GL.iNet routers.
 
 ## Usage
 
@@ -19,6 +19,10 @@ You can run it without cloning the repository by using the following command:
 ```shell
 wget -O update-adguardhome.sh https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh && sh update-adguardhome.sh
 ```
+
+## Tiny-AdGuardHome
+
+By default, this script will use a pre-compressed version of AdGuard Home. This version is optimized for GL.iNet routers and saves plenty of space. Instead of 32 MB, the compressed version is only 6 MB.
 
 ## Running on devices with low free space
 

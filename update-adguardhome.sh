@@ -9,15 +9,16 @@
 # Author: Admon
 # Date: 2024-03-13
 # Updated: 2024-05-06
-SCRIPT_VERSION="2024.05.19.01"
+SCRIPT_VERSION="2024.06.20.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
+AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/"
 #
 # Usage: ./update-adguardhome.sh [--ignore-free-space]
 # Warning: This script might potentially harm your router. Use it at your own risk.
 #
 # Populate variables
-TEMP_FILE="/tmp/AdGuardHome.tar.gz"
+TEMP_FILE="/tmp/AdGuardHomeNew"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -123,17 +124,17 @@ preflight_check() {
     fi
     if [ "$ARCH" = "aarch64" ]; then
         log "SUCCESS" "Architecture: arm64"
-        AGH_VERSION_NEW="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz"
+        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/download/v0.107.51/AdGuardHome-linux-arm64"
     elif [ "$ARCH" = "armv7l" ]; then
         log "SUCCESS" "Architecture: armv7"
-        AGH_VERSION_NEW="https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_armv7.tar.gz"
+        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/download/v0.107.51/AdGuardHome-linux-arm"
     else
         log "ERROR" "This script only works on arm64 and armv7."
         PREFLIGHT=1
     fi
-    if [ "$AVAILABLE_SPACE" -lt 35 ]; then
+    if [ "$AVAILABLE_SPACE" -lt 15 ]; then
         log "ERROR" "Not enough space available. Please free up some space and try again."
-        log "ERROR" "The script needs at least 35 MB of free space. Available space: $AVAILABLE_SPACE MB"
+        log "ERROR" "The script needs at least 15 MB of free space. Available space: $AVAILABLE_SPACE MB"
         log "ERROR" "If you want to continue, you can use --ignore-free-space to ignore this check."
         if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
             log "WARNING" "--ignore-free-space flag is used. Continuing without enough space ..."
@@ -150,12 +151,6 @@ preflight_check() {
         PREFLIGHT=1
     else
         log "SUCCESS" "curl is installed."
-    fi
-    if ! command -v wget >/dev/null; then
-        log "ERROR" "wget is not installed."
-        PREFLIGHT=1
-    else
-        log "SUCCESS" "wget is installed."
     fi
     if [ "$PREFLIGHT" -eq "1" ]; then
         log "ERROR" "Prerequisites are not met. Exiting ..."
@@ -207,7 +202,7 @@ log() {
 
 # Check if the script is up to date
 preflight_check
-invoke_update "$@"
+#invoke_update "$@"
 invoke_intro
 echo -e "\033[93m┌──────────────────────────────────────────────────┐\033[0m"
 echo -e "\033[93m| Are you sure you want to continue? (y/N)         |\033[0m"
@@ -230,6 +225,21 @@ if [ "$answer" != "${answer#[Yy]}" ]; then
             exit 0
         fi
     fi
+    
+    log "INFO" "Detecting latest AdGuard Home version"
+    AGH_VERSION_NEW=$(curl -L -s $AGH_TINY_URL/version.txt | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
+    if [ -z "$AGH_VERSION_NEW" ]; then
+        log "ERROR" "Could not get latest AdGuard Home version. Please check your internet connection."
+        exit 1
+    fi
+    log "INFO" "Latest AdGuard Home version: $AGH_VERSION_NEW"
+    AGH_VERSION_OLD=$(/usr/bin/AdGuardHome --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
+    log "INFO" "Current AdGuard Home version: $AGH_VERSION_OLD"
+        if [ "$AGH_VERSION_NEW" == "$AGH_VERSION_OLD" ]; then
+        log "SUCCESS" "You already have the latest version."
+        exit 0
+    fi
+    log "WARNING" "Updating from version $AGH_VERSION_OLD to $AGH_VERSION_NEW"
     # Create backup of AdGuardHome
     if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
         log "WARNING" "Skipping backup, because --ignore-free-space is used"
@@ -238,19 +248,8 @@ if [ "$answer" != "${answer#[Yy]}" ]; then
     fi
     # Download latest version of AdGuardHome
     log "INFO" "Downloading latest Adguard Home version ..."
-    wget -qO $TEMP_FILE $AGH_VERSION_NEW
-    # Extracting
-    log "INFO" "Extracting Adguard Home ..."
-    # If directory already exists, remove it
-    if [ -d /tmp/AdGuardHome ]; then
-        rm -rf /tmp/AdGuardHome
-    fi
-    mkdir /tmp/AdGuardHome
-    tar xzf $TEMP_FILE -C /tmp/AdGuardHome
-    # Removing archive
-    rm $TEMP_FILE
-    # Search for AdGuardHome binary
-    AGH_BINARY=$(find /tmp/AdGuardHome -name AdGuardHome -type f)
+    curl -L -s --output $TEMP_FILE $AGH_VERSION_DOWNLOAD
+    AGH_BINARY=$(find /tmp -name AdGuardHomeNew -type f)
     if [ -f $AGH_BINARY ]; then
         log "SUCCESS" "AdGuardHome binary found, download was successful!"
     else
@@ -271,12 +270,12 @@ if [ "$answer" != "${answer#[Yy]}" ]; then
     log "INFO" "Moving AdGuardHome to /usr/bin ..."
     rm /usr/bin/AdGuardHome
     mv $AGH_BINARY /usr/bin/AdGuardHome
-    # Remove temporary files
-    log "INFO" "Removing temporary files ..."
-    rm -rf /tmp/AdGuardHome
+    chmod +x /usr/bin/AdGuardHome
     # Restart AdGuardHome
     log "INFO" "Restarting AdGuard Home ..."
     /etc/init.d/adguardhome restart 2 &>/dev/null
+    AGH_VERSION_CHECK=$(/usr/bin/AdGuardHome --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
+    log "SUCCESS" "AdGuard Home has been updated to version $AGH_VERSION_CHECK"
     # Make persistance
     echo -e "\033[93m┌──────────────────────────────────────────────────────────────────────────────────────────────────────────┐\033[0m"
     echo -e "\033[93m| The update was successful. Do you want to make the installation permanent?                               |\033[0m"
