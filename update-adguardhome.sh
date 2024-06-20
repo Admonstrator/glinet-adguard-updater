@@ -202,7 +202,7 @@ log() {
 
 # Check if the script is up to date
 preflight_check
-#invoke_update "$@"
+invoke_update "$@"
 invoke_intro
 echo -e "\033[93m┌──────────────────────────────────────────────────┐\033[0m"
 echo -e "\033[93m| Are you sure you want to continue? (y/N)         |\033[0m"
