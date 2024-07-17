@@ -9,7 +9,7 @@
 # Author: Admon
 # Date: 2024-03-13
 # Updated: 2024-05-06
-SCRIPT_VERSION="2024.06.20.01"
+SCRIPT_VERSION="2024.07.17.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/"
