@@ -124,10 +124,10 @@ preflight_check() {
     fi
     if [ "$ARCH" = "aarch64" ]; then
         log "SUCCESS" "Architecture: arm64"
-        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/download/v0.107.51/AdGuardHome-linux-arm64"
+        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux-arm64"
     elif [ "$ARCH" = "armv7l" ]; then
         log "SUCCESS" "Architecture: armv7"
-        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/download/v0.107.51/AdGuardHome-linux-arm"
+        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux-arm"
     else
         log "ERROR" "This script only works on arm64 and armv7."
         PREFLIGHT=1
