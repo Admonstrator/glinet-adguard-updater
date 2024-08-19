@@ -47,16 +47,16 @@ jobs:
     strategy:
       matrix:
         include:
-          - platform: amd64
-            dl-arch: amd64
-          - platform: arm
-            dl-arch: armv7
-          - platform: arm64
-            dl-arch: arm64
-          - platform: mips
-            dl-arch: mips_softfloat
-          - platform: mipsle
-            dl-arch: mipsle
+          - platform: linux_amd64
+            file_suffix: linux_amd64
+          - platform: linux_armv7
+            file_suffix: linux_armv7
+          - platform: linux_arm64
+            file_suffix: linux_arm64
+          - platform: linux_mipsle_softfloat
+            file_suffix: linux_mipsle_softfloat
+          - platform: linux_mips_softfloat
+            file_suffix: linux_mips_softfloat
     steps:
       - name: Checkout ${{ env.SOFTWARE_NAME }} repository
         uses: actions/checkout@v4
@@ -65,14 +65,14 @@ jobs:
           ref: ${{ env.TAG }}
       - name: Download ${{ env.SOFTWARE_NAME }} ${{ matrix.platform }}
         run: |
-          wget -q "https://github.com/AdguardTeam/AdGuardHome/releases/download/${{ env.TAG }}/${{ env.FILE_NAME }}_${{ matrix.os }}_${{ matrix.dl-arch }}.tar.gz"
-          tar --to-stdout -xf "${{ env.FILE_NAME }}_${{ matrix.os }}_${{ matrix.dl-arch }}.tar.gz" \
-            "./${{ env.FILE_NAME }}/${{ env.FILE_NAME }}" > "${{ env.FILE_NAME }}-${{ matrix.os }}-${{ matrix.platform }}"
+          wget -q "https://github.com/AdguardTeam/AdGuardHome/releases/download/${{ env.TAG }}/${{ env.FILE_NAME }}_${{ matrix.file_suffix }}.tar.gz"
+          tar --to-stdout -xf "${{ env.FILE_NAME }}_${{ matrix.file_suffix }}.tar.gz" \
+            "./${{ env.FILE_NAME }}/${{ env.FILE_NAME }}" > "${{ env.FILE_NAME }}-${{ matrix.platform }}"
       - name: Upload built binary
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.FILE_NAME }}-${{ matrix.os }}-${{ matrix.platform }}
-          path: ./${{ env.FILE_NAME }}-${{ matrix.os }}-${{ matrix.platform }}
+          name: ${{ env.FILE_NAME }}-${{ matrix.platform }}
+          path: ./${{ env.FILE_NAME }}-${{ matrix.platform }}
   publish:
     runs-on: ubuntu-latest
     permissions:
