@@ -46,22 +46,24 @@ jobs:
       TAG: ${{ needs.check-versions.outputs.TAG }}
     strategy:
       matrix:
-        go-version: [stable]
-        os: [linux]
-        platform: [amd64, arm, arm64, mips, mipsle]
-        dl-arch:
-          - amd64
-          - armv7
-          - arm64
-          - mips_softfloat
-          - mipsle
+        include:
+          - platform: amd64
+            dl-arch: amd64
+          - platform: arm
+            dl-arch: armv7
+          - platform: arm64
+            dl-arch: arm64
+          - platform: mips
+            dl-arch: mips_softfloat
+          - platform: mipsle
+            dl-arch: mipsle
     steps:
       - name: Checkout ${{ env.SOFTWARE_NAME }} repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REPO }}
           ref: ${{ env.TAG }}
-      - name: Download ${{ env.SOFTWARE_NAME }} ${{ matrix.os }} ${{ matrix.platform }}
+      - name: Download ${{ env.SOFTWARE_NAME }} ${{ matrix.platform }}
         run: |
           wget -q "https://github.com/AdguardTeam/AdGuardHome/releases/download/${{ env.TAG }}/${{ env.FILE_NAME }}_${{ matrix.os }}_${{ matrix.dl-arch }}.tar.gz"
           tar --to-stdout -xf "${{ env.FILE_NAME }}_${{ matrix.os }}_${{ matrix.dl-arch }}.tar.gz" \
