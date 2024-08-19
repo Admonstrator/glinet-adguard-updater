@@ -9,7 +9,7 @@
 # Author: Admon
 # Date: 2024-03-13
 # Updated: 2024-05-06
-SCRIPT_VERSION="2024.07.17.01"
+SCRIPT_VERSION="2024.08.19.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/"
@@ -122,12 +122,25 @@ preflight_check() {
     else
         log "SUCCESS" "Firmware version: $FIRMWARE_VERSION"
     fi
+    if [ "$MODEL" = "GL.iNet GL-MT1300" ]; then
+        ARCH = "mipsle"
+    fi
     if [ "$ARCH" = "aarch64" ]; then
         log "SUCCESS" "Architecture: arm64"
-        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux-arm64"
+        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux_arm64"
     elif [ "$ARCH" = "armv7l" ]; then
         log "SUCCESS" "Architecture: armv7"
-        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux-arm"
+        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux_armv7"
+    elif [ "$ARCH" = "mips" ]; then
+        # Check for GL.iNet GL-MT1300 as it uses mipsle
+        MODEL=$(grep 'machine' /proc/cpuinfo | awk -F ': ' '{print $2}')
+        if [ "$MODEL" = "GL.iNet GL-MT1300" ]; then
+            log "SUCCESS" "Architecture: mipsle"
+            AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux_mipsle_softfloat"
+        else
+            log "SUCCESS" "Architecture: mips"
+            AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux_mips_softfloat"
+        fi
     else
         log "ERROR" "This script only works on arm64 and armv7."
         PREFLIGHT=1
