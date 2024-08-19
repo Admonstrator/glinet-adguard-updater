@@ -1,0 +1,164 @@
+name: Prebuild AdGuard Home for GL.iNet devices
+on:
+  schedule:
+    - cron: '30 9/12 * * *'
+  workflow_dispatch:
+env:
+  SOFTWARE_NAME: "AdGuard Home"
+  FILE_NAME: "AdGuardHome"
+  REPO: "AdguardTeam/AdGuardHome"
+  REPO_SMALL: "Admonstrator/glinet-adguard-updater"
+  GIT_AUTHOR_NAME: "Admonstrator"
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      TAG: ${{ steps.tag.outputs.TAG }}
+      TAG_SMALL: ${{ steps.tag_small.outputs.TAG_SMALL }}
+    steps:
+      - name: Get latest ${{ env.SOFTWARE_NAME }} tag
+        id: tag
+        run: |
+          latest_tag=$(
+            curl -s "https://api.github.com/repos/${{ env.REPO }}/releases/latest" \
+            | grep -oP '"tag_name": "\K(.*)(?=")'
+          )
+          echo "TAG=$latest_tag" >> "$GITHUB_OUTPUT"
+          echo "Latest ${{ env.SOFTWARE_NAME }} Tag: $latest_tag"
+      - name: Get latest ${{ env.SOFTWARE_NAME }} Small tag
+        id: tag_small
+        run: |
+          latest_tag_small=$(
+            curl -s "https://api.github.com/repos/${{ env.REPO_SMALL }}/releases/latest" \
+            | grep -oP '"tag_name": "\K(.*)(?=")' || echo ""
+          )
+          echo "TAG_SMALL=$latest_tag_small" >> "$GITHUB_OUTPUT"
+          echo "Latest ${{ env.SOFTWARE_NAME }} Small Tag: $latest_tag_small"
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: check-versions
+    if: needs.check-versions.outputs.TAG_SMALL != needs.check-versions.outputs.TAG
+    env:
+      TAG: ${{ needs.check-versions.outputs.TAG }}
+    strategy:
+      matrix:
+        go-version: [stable]
+        os: [linux]
+        platform:
+          - arm
+          - arm64
+          - mips
+          - mipsle
+    steps:
+      - name: Checkout ${{ env.SOFTWARE_NAME }} repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.REPO }}
+          ref: ${{ env.TAG }}
+      - name: Download ${{ env.SOFTWARE_NAME }} ${{ matrix.os }} ${{ matrix.platform }}
+        run: |
+          if [[ "${{ matrix.platform }}" == "amd64" ]]; then
+              DL_ARCH="${{ matrix.platform }}"
+          elif [[ "${{ matrix.platform }}" == "arm" ]]; then
+              DL_ARCH="${{ matrix.platform }}v7"
+          elif [[ "${{ matrix.platform }}" == "arm64" ]]; then
+              DL_ARCH="${{ matrix.platform }}"
+          elif [[ "${{ matrix.platform }}" == "mips" ]]; then
+              DL_ARCH="${{ matrix.platform }}_softfloat"
+          fi
+          wget -q "https://github.com/AdguardTeam/AdGuardHome/releases/download/${{ env.TAG }}/${{ env.FILE_NAME }}_${{ matrix.os }}_${DL_ARCH}.tar.gz"
+          tar --to-stdout -xf "${{ env.FILE_NAME }}_${{ matrix.os }}_${DL_ARCH}.tar.gz" \
+            "./${{ env.FILE_NAME }}/${{ env.FILE_NAME }}" > "${{ env.FILE_NAME }}-${{ matrix.os }}-${{ matrix.platform }}"
+      - name: Upload built binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE_NAME }}-${{ matrix.os }}-${{ matrix.platform }}
+          path: ./${{ env.FILE_NAME }}-${{ matrix.os }}-${{ matrix.platform }}
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - build
+      - check-versions
+    if: needs.check-versions.outputs.TAG_SMALL != needs.check-versions.outputs.TAG
+    env:
+      TAG: ${{ needs.check-versions.outputs.TAG }}
+    steps:
+      - name: Get UPX latest version
+        id: get-upx-version
+        run: |
+          echo "UPX_VERSION=$(
+            curl -s https://api.github.com/repos/upx/upx/releases/latest \
+            | jq -r '.tag_name' \
+            | cut -c 2-
+          )" >> "$GITHUB_ENV"
+      - name: Download UPX
+        run: |
+          wget -q "https://github.com/upx/upx/releases/latest/download/upx-${{ env.UPX_VERSION }}-amd64_linux.tar.xz"
+          tar --to-stdout -xf "upx-${{ env.UPX_VERSION }}-amd64_linux.tar.xz" \
+            "upx-${{ env.UPX_VERSION }}-amd64_linux/upx" > "${PWD}/upx"
+          chmod -v +x "${PWD}/upx"
+      - name: Download built binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ env.FILE_NAME }}-*
+      - name: Moving files
+        run: |
+          for dir in "${{ env.FILE_NAME }}-"*; do
+            mv -v "${dir}" "${dir}.d"
+            mv -v "${dir}.d/${{ env.FILE_NAME }}-"* .
+            rmdir -v "${dir}.d"
+          done
+          chmod -v +x "${{ env.FILE_NAME }}-"*
+      - name: Compress Binary with UPX
+        run: |
+          "${PWD}/upx" --lzma --best --no-progress "${{ env.FILE_NAME }}-"*
+      - name: Create checksums
+        run: |
+          sha256sum "${{ env.FILE_NAME }}-"* > "checksums.txt"
+      - name: Create version file
+        run: |
+          echo "${{ env.TAG }}" > "version.txt"
+      - name: Checkout ${{ env.SOFTWARE_NAME }} Small repository
+        uses: actions/checkout@v4
+        with:
+          path: tools
+          repository: ${{ env.REPO_SMALL }}
+      - name: Create tag in ${{ env.SOFTWARE_NAME }} Small repository
+        run: |
+          cd tools
+          if git rev-parse --quiet --verify "refs/tags/${{ env.TAG }}"; then
+            echo "Tag already exists"
+            exit 0
+          else
+            echo "Tag does not exist, creating"
+            git tag "${{ env.TAG }}"
+            git push --tags
+          fi
+      - name: Create Release
+        if: github.ref == 'refs/tags/${{ env.TAG }}'
+        uses: ncipollo/release-action@v1
+        with:
+          name: Small ${{ env.SOFTWARE_NAME }} ${{ env.TAG }}
+          tag: ${{ env.TAG }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
+          artifacts: |
+            ${{ env.FILE_NAME }}-*
+            checksums.txt
+            version.txt
+          body: |
+            Small ${{ env.SOFTWARE_NAME }} build ${{ env.TAG }}
+
+            For a complete changelog go to https://github.com/${{ env.REPO }}/releases/tag/${{ env.TAG }}
+
+            This release was created by:
+
+            * Fetching a binary from upstream
+            * Compressing the binary with UPX
