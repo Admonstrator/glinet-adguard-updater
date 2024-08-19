@@ -1,4 +1,4 @@
-name: Prebuild AdGuard Home for GL.iNet devices
+name: Test workflow
 on:
   schedule:
     - cron: '30 9/12 * * *'
@@ -48,10 +48,12 @@ jobs:
       matrix:
         go-version: [stable]
         os: [linux]
-        platform:
-          - arm
+        platform: [amd64, arm, arm64, mips, mipsle]
+        dl-arch:
+          - amd64
+          - armv7
           - arm64
-          - mips
+          - mips_softfloat
           - mipsle
     steps:
       - name: Checkout ${{ env.SOFTWARE_NAME }} repository
@@ -61,17 +63,8 @@ jobs:
           ref: ${{ env.TAG }}
       - name: Download ${{ env.SOFTWARE_NAME }} ${{ matrix.os }} ${{ matrix.platform }}
         run: |
-          if [[ "${{ matrix.platform }}" == "amd64" ]]; then
-              DL_ARCH="${{ matrix.platform }}"
-          elif [[ "${{ matrix.platform }}" == "arm" ]]; then
-              DL_ARCH="${{ matrix.platform }}v7"
-          elif [[ "${{ matrix.platform }}" == "arm64" ]]; then
-              DL_ARCH="${{ matrix.platform }}"
-          elif [[ "${{ matrix.platform }}" == "mips" ]]; then
-              DL_ARCH="${{ matrix.platform }}_softfloat"
-          fi
-          wget -q "https://github.com/AdguardTeam/AdGuardHome/releases/download/${{ env.TAG }}/${{ env.FILE_NAME }}_${{ matrix.os }}_${DL_ARCH}.tar.gz"
-          tar --to-stdout -xf "${{ env.FILE_NAME }}_${{ matrix.os }}_${DL_ARCH}.tar.gz" \
+          wget -q "https://github.com/AdguardTeam/AdGuardHome/releases/download/${{ env.TAG }}/${{ env.FILE_NAME }}_${{ matrix.os }}_${{ matrix.dl-arch }}.tar.gz"
+          tar --to-stdout -xf "${{ env.FILE_NAME }}_${{ matrix.os }}_${{ matrix.dl-arch }}.tar.gz" \
             "./${{ env.FILE_NAME }}/${{ env.FILE_NAME }}" > "${{ env.FILE_NAME }}-${{ matrix.os }}-${{ matrix.platform }}"
       - name: Upload built binary
         uses: actions/upload-artifact@v4
