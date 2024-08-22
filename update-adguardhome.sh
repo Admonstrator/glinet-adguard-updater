@@ -8,8 +8,7 @@
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
 # Date: 2024-03-13
-# Updated: 2024-05-06
-SCRIPT_VERSION="2024.08.19.01"
+SCRIPT_VERSION="2024.08.22.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/"
@@ -213,12 +212,33 @@ log() {
     echo -e "${color}[$timestamp] [$level] $message${INFO}"
 }
 
+enable_querylog() {
+    log "INFO" "Due to the GL firmware, the query log is in RAM only."
+    log "INFO" "It will be lost after a reboot or restart of AdGuard Home."
+    log "INFO" "This is to prevent the router from running out of memory"
+    log "INFO" "and wearing out the flash memory too quickly."
+    log "INFO" "We can enable storing the query log on flash for you."
+    log "WARNING" "Please keep in mind that this will wear out the flash memory faster."
+    log "WARNING" "This is not recommended for routers with only 16 MB of flash memory."
+    echo -e "\033[93m┌─────────────────────────────────────────────────────┐\033[0m"
+    echo -e "\033[93m| Do you want to enable the query log on flash? (y/N)|\033[0m"
+    echo -e "\033[93m└─────────────────────────────────────────────────────┘\033[0m"
+    read answer_querylog
+    if [ "$answer_querylog" != "${answer_querylog#[Yy]}" ]; then
+        log "INFO" "Enabling query log ..."
+        sed -i '/^querylog:/,/^[^ ]/ s/^  file_enabled: .*/  file_enabled: true/' /etc/AdGuardHome/config.yaml
+        log "SUCCESS" "Query log is now enabled."
+    else
+        log "INFO" "Ok, skipping query log ..."
+    fi
+}
+
 # Check if the script is up to date
 preflight_check
 invoke_update "$@"
 invoke_intro
 echo -e "\033[93m┌──────────────────────────────────────────────────┐\033[0m"
-echo -e "\033[93m| Are you sure you want to continue? (y/N)         |\033[0m"
+echo -e "\033[93m| Are you sure you want to continue? (y/N)          |\033[0m"
 echo -e "\033[93m└──────────────────────────────────────────────────┘\033[0m"
 read answer
 
@@ -289,6 +309,8 @@ if [ "$answer" != "${answer#[Yy]}" ]; then
     /etc/init.d/adguardhome restart 2 &>/dev/null
     AGH_VERSION_CHECK=$(/usr/bin/AdGuardHome --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
     log "SUCCESS" "AdGuard Home has been updated to version $AGH_VERSION_CHECK"
+    # Enable query log
+    enable_querylog
     # Make persistance
     echo -e "\033[93m┌──────────────────────────────────────────────────────────────────────────────────────────────────────────┐\033[0m"
     echo -e "\033[93m| The update was successful. Do you want to make the installation permanent?                               |\033[0m"

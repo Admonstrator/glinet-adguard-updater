@@ -30,6 +30,24 @@ You can use `--ignore-free-space` to ignore the free space check. This is useful
 
 In that case there will be no backup of the original files and the script will not check if there is enough free space to download the new files. Could potentially break your router if there is not enough free space. It's not recommended to use this option!
 
+## Enabling query logging
+
+By default, AdGuard Home is not able to save the query log to a file. This is to prevent running out of space on the router and prevent wearing out the flash memory. This script can enable query logging to file by setting the `querylog` option in the AdGuard Home configuration file. You will asked if you want to enable query logging after the update.
+
+If you want to enable query logging to file without updating AdGuard Home, you can run the following command:
+
+```shell
+sed -i '/^querylog:/,/^[^ ]/ s/^  file_enabled: .*/  file_enabled: true/' /etc/AdGuardHome/config.yaml
+/etc/init.d/AdGuardHome restart
+```
+
+For disabling query logging to file, you can run the following command:
+
+```shell
+sed -i '/^querylog:/,/^[^ ]/ s/^  file_enabled: .*/  file_enabled: false/' /etc/AdGuardHome/config.yaml
+/etc/init.d/AdGuardHome restart
+```
+
 ## Feedback
 
 Feel free to provide feedback in the [GL.iNet forum](https://forum.gl-inet.com/t/script-update-adguard-home/39398).
