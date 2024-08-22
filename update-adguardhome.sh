@@ -8,7 +8,7 @@
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
 # Date: 2024-03-13
-SCRIPT_VERSION="2024.08.22.01"
+SCRIPT_VERSION="2024.08.22.02"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/"
@@ -221,7 +221,7 @@ enable_querylog() {
     log "WARNING" "Please keep in mind that this will wear out the flash memory faster."
     log "WARNING" "This is not recommended for routers with only 16 MB of flash memory."
     echo -e "\033[93m┌─────────────────────────────────────────────────────┐\033[0m"
-    echo -e "\033[93m| Do you want to enable the query log on flash? (y/N)|\033[0m"
+    echo -e "\033[93m| Do you want to enable the query log on flash? (y/N) |\033[0m"
     echo -e "\033[93m└─────────────────────────────────────────────────────┘\033[0m"
     read answer_querylog
     if [ "$answer_querylog" != "${answer_querylog#[Yy]}" ]; then
@@ -238,7 +238,7 @@ preflight_check
 invoke_update "$@"
 invoke_intro
 echo -e "\033[93m┌──────────────────────────────────────────────────┐\033[0m"
-echo -e "\033[93m| Are you sure you want to continue? (y/N)          |\033[0m"
+echo -e "\033[93m| Are you sure you want to continue? (y/N)         |\033[0m"
 echo -e "\033[93m└──────────────────────────────────────────────────┘\033[0m"
 read answer
 
