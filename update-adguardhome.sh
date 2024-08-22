@@ -8,7 +8,7 @@
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
 # Date: 2024-03-13
-SCRIPT_VERSION="2024.08.22.02"
+SCRIPT_VERSION="2024.08.22.03"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/"
@@ -227,6 +227,8 @@ enable_querylog() {
     if [ "$answer_querylog" != "${answer_querylog#[Yy]}" ]; then
         log "INFO" "Enabling query log ..."
         sed -i '/^querylog:/,/^[^ ]/ s/^  file_enabled: .*/  file_enabled: true/' /etc/AdGuardHome/config.yaml
+        log "INFO" "Restarting AdGuard Home ..."
+        /etc/init.d/adguardhome restart 2 &>/dev/null
         log "SUCCESS" "Query log is now enabled."
     else
         log "INFO" "Ok, skipping query log ..."
