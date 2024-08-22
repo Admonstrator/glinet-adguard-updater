@@ -38,14 +38,14 @@ If you want to enable query logging to file without updating AdGuard Home, you c
 
 ```shell
 sed -i '/^querylog:/,/^[^ ]/ s/^  file_enabled: .*/  file_enabled: true/' /etc/AdGuardHome/config.yaml
-/etc/init.d/AdGuardHome restart
+/etc/init.d/adguardhome restart
 ```
 
 For disabling query logging to file, you can run the following command:
 
 ```shell
 sed -i '/^querylog:/,/^[^ ]/ s/^  file_enabled: .*/  file_enabled: false/' /etc/AdGuardHome/config.yaml
-/etc/init.d/AdGuardHome restart
+/etc/init.d/adguardhome restart
 ```
 
 ## Feedback
