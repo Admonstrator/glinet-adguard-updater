@@ -8,7 +8,7 @@
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
 # Date: 2024-03-13
-SCRIPT_VERSION="2024.10.27.01"
+SCRIPT_VERSION="2024.10.27.02"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download"
@@ -345,7 +345,6 @@ preflight_check
         # Download latest version of AdGuardHome
         log "INFO" "Downloading latest Adguard Home version ..."
         AGH_VERSION_DOWNLOAD="$AGH_TINY_URL/$AGH_ARCH"
-        log "INFO" "Downloading $AGH_VERSION_DOWNLOAD ..."
         curl -L -s --output $TEMP_FILE $AGH_VERSION_DOWNLOAD
         AGH_BINARY=$(find /tmp -name AdGuardHomeNew -type f)
         if [ -f $AGH_BINARY ]; then
