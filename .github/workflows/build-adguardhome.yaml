@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: '30 9/12 * * *'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build, e.g., v0.107.51'
+        required: true
+        default: 'latest'
 env:
   SOFTWARE_NAME: "AdGuard Home"
   FILE_NAME: "AdGuardHome"
@@ -18,15 +23,20 @@ jobs:
       TAG: ${{ steps.tag.outputs.TAG }}
       TAG_SMALL: ${{ steps.tag_small.outputs.TAG_SMALL }}
     steps:
-      - name: Get latest ${{ env.SOFTWARE_NAME }} tag
+      - name: Get specified or latest ${{ env.SOFTWARE_NAME }} tag
         id: tag
         run: |
-          latest_tag=$(
-            curl -s "https://api.github.com/repos/${{ env.REPO }}/releases/latest" \
-            | grep -oP '"tag_name": "\K(.*)(?=")'
-          )
-          echo "TAG=$latest_tag" >> "$GITHUB_OUTPUT"
-          echo "Latest ${{ env.SOFTWARE_NAME }} Tag: $latest_tag"
+          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+            selected_tag="${{ github.event.inputs.tag }}"
+          else
+            selected_tag=$(
+              curl -s "https://api.github.com/repos/${{ env.REPO }}/releases/latest" \
+              | grep -oP '"tag_name": "\K(.*)(?=")'
+            )
+          fi
+          echo "TAG=$selected_tag" >> "$GITHUB_OUTPUT"
+          echo "Selected ${{ env.SOFTWARE_NAME }} Tag: $selected_tag"
+      
       - name: Get latest ${{ env.SOFTWARE_NAME }} Small tag
         id: tag_small
         run: |
