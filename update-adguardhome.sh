@@ -8,12 +8,12 @@
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
 # Date: 2024-03-13
-SCRIPT_VERSION="2024.08.22.03"
+SCRIPT_VERSION="2024.10.27.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
-AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/"
+AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download"
 #
-# Usage: ./update-adguardhome.sh [--ignore-free-space]
+# Usage: ./update-adguardhome.sh [--ignore-free-space] [--select-release]
 # Warning: This script might potentially harm your router. Use it at your own risk.
 #
 # Populate variables
@@ -23,6 +23,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 INFO='\033[0m' # No Color
 IGNORE_FREE_SPACE=0
+SELECT_RELEASE=0
 
 # Function for backup
 backup() {
@@ -126,24 +127,25 @@ preflight_check() {
     fi
     if [ "$ARCH" = "aarch64" ]; then
         log "SUCCESS" "Architecture: arm64"
-        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux_arm64"
+        AGH_ARCH="AdGuardHome-linux_arm64"
     elif [ "$ARCH" = "armv7l" ]; then
         log "SUCCESS" "Architecture: armv7"
-        AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux_armv7"
+        AGH_ARCH="AdGuardHome-linux_armv7"
     elif [ "$ARCH" = "mips" ]; then
         # Check for GL.iNet GL-MT1300 as it uses mipsle
         MODEL=$(grep 'machine' /proc/cpuinfo | awk -F ': ' '{print $2}')
         if [ "$MODEL" = "GL.iNet GL-MT1300" ]; then
             log "SUCCESS" "Architecture: mipsle"
-            AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux_mipsle_softfloat"
+            AGH_ARCH="AdGuardHome-linux_mipsle_softfloat"
         else
             log "SUCCESS" "Architecture: mips"
-            AGH_VERSION_DOWNLOAD="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download/AdGuardHome-linux_mips_softfloat"
+            AGH_ARCH="AdGuardHome-linux_mips_softfloat"
         fi
     else
         log "ERROR" "This script only works on arm64 and armv7."
         PREFLIGHT=1
     fi
+
     if [ "$AVAILABLE_SPACE" -lt 15 ]; then
         log "ERROR" "Not enough space available. Please free up some space and try again."
         log "ERROR" "The script needs at least 15 MB of free space. Available space: $AVAILABLE_SPACE MB"
@@ -173,15 +175,13 @@ preflight_check() {
 }
 
 invoke_intro() {
-    echo "┌────────────────────────────────────────────────────────────────────────┐"
-    echo "│ GL.iNet router script by Admon 🦭 for the GL.iNet community            |"
-    echo "| Version: $SCRIPT_VERSION                                                 |"
-    echo "├────────────────────────────────────────────────────────────────────────┤"
-    echo "│ WARNING: THIS SCRIPT MIGHT POTENTIALLY HARM YOUR ROUTER!               │"
-    echo "│ It's only recommended to use this script if you know what you're doing.│"
-    echo "├────────────────────────────────────────────────────────────────────────┤"
-    echo "│ This script will update AdGuard Home on your router.                   │"
-    echo "└────────────────────────────────────────────────────────────────────────┘"
+    log "INFO" "GL.iNet router script by Admon 🦭 for the GL.iNet community" 
+    log "INFO" "Version: $SCRIPT_VERSION"
+    log "INFO" "────"
+    log "WARNING" "THIS SCRIPT MIGHT POTENTIALLY HARM YOUR ROUTER!"
+    log "WARNING" "It's only recommended to use this script if you know what you're doing."
+    log "INFO" "────"
+    log "INFO" "This script will update AdGuard Home on your router."
 }
 
 log() {
@@ -219,10 +219,7 @@ enable_querylog() {
     log "INFO" "and wearing out the flash memory too quickly."
     log "INFO" "We can enable storing the query log on flash for you."
     log "WARNING" "Please keep in mind that this will wear out the flash memory faster."
-    log "WARNING" "This is not recommended for routers with only 16 MB of flash memory."
-    echo -e "\033[93m┌─────────────────────────────────────────────────────┐\033[0m"
-    echo -e "\033[93m| Do you want to enable the query log on flash? (y/N) |\033[0m"
-    echo -e "\033[93m└─────────────────────────────────────────────────────┘\033[0m"
+    log "WARNING" "Do you want to enable the query log on flash? (y/N)"
     read answer_querylog
     if [ "$answer_querylog" != "${answer_querylog#[Yy]}" ]; then
         log "INFO" "Enabling query log ..."
@@ -235,23 +232,82 @@ enable_querylog() {
     fi
 }
 
-# Check if the script is up to date
-preflight_check
-invoke_update "$@"
-invoke_intro
-echo -e "\033[93m┌──────────────────────────────────────────────────┐\033[0m"
-echo -e "\033[93m| Are you sure you want to continue? (y/N)         |\033[0m"
-echo -e "\033[93m└──────────────────────────────────────────────────┘\033[0m"
-read answer
+# Function to choose a GitHub release label
+choose_release_label() {
+    log "INFO" "Fetching available release labels..."
+    available_labels=$(curl -s "https://api.github.com/repos/Admonstrator/glinet-adguard-updater/releases" | grep -o '"tag_name": "[^"]*' | sed 's/"tag_name": "//g')
+    
+    if [ -z "$available_labels" ]; then
+        log "ERROR" "Could not retrieve release labels. Please check your internet connection."
+        exit 1
+    fi
 
-if [ "$answer" != "${answer#[Yy]}" ]; then
+    log "INFO" "Available release labels:"
+    
+    # Display labels with numbered options
+    i=1
+    for label in $available_labels; do
+        echo -e "\033[93m $i) $label\033[0m"
+        i=$((i + 1))
+    done
+    
+    echo -e "\033[93m Select a release by entering the corresponding number: \033[0m"
+    read -r label_choice
+    selected_label=$(echo "$available_labels" | sed -n "${label_choice}p")
+    
+    if [ -z "$selected_label" ]; then
+        log "ERROR" "Invalid choice. Exiting..."
+        exit 1
+    else
+        log "INFO" "You selected release label: $selected_label"
+        AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/download/$selected_label"
+        log "WARNING" "Downgrading is not officially supported by AdGuard Home!"
+        log "WARNING" "You need to delete the config folder after downgrading!"
+        log "WARNING" "All AdGuard Home settings will be lost!"
+        log "WARNING" "After this script has finished, run:"
+        log "WARNING" "rm -rf /etc/AdGuardHome"
+        log "WARNING" "/etc/init.d/adguardhome restart"
+        log "WARNING" "This script will NOT run the above commands for you!"
+        log "WARNING" "Do you want to continue? (y/N)"
+        read -r answer
+        if [ "$answer" != "${answer#[Yy]}" ]; then
+            log "INFO" "Ok, continuing ..."
+        else
+            log "ERROR" "Ok, see you next time!"
+            exit 0
+        fi
+    fi
+}
+
+# Check if the script is up to date
+for arg in "$@"; do
+    case $arg in
+        --ignore-free-space)
+            IGNORE_FREE_SPACE=1
+            shift
+            ;;
+        --select-release)
+            SELECT_RELEASE=1
+            shift
+            ;;
+        *)
+            ;;
+    esac
+done
+
+invoke_intro
+invoke_update "$@"
+preflight_check
+
+    if [ "$SELECT_RELEASE" -eq 1 ]; then
+        choose_release_label
+    fi
     # Ask for confirmation when --ignore-free-space is used
     if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
-        log "WARNING" "--ignore-free-space is used. There will be no backup of your current config of AdGuard Home!"
+        log "WARNING" "--ignore-free-space is used." 
+        log "WARNING" "There will be no backup of your current config of AdGuard Home!"
         log "WARNING" "You might need to reset your router to factory settings if something goes wrong."
-        echo -e "\033[93m┌──────────────────────────────────────────────────┐\033[0m"
-        echo -e "\033[93m| Are you sure you want to continue? (y/N)         |\033[0m"
-        echo -e "\033[93m└──────────────────────────────────────────────────┘\033[0m"
+        log "WARNING" "Do you want to continue? (y/N)"
         read answer
         if [ "$answer" != "${answer#[Yy]}" ]; then
             log "INFO" "Ok, continuing ..."
@@ -275,61 +331,70 @@ if [ "$answer" != "${answer#[Yy]}" ]; then
         exit 0
     fi
     log "WARNING" "Updating from version $AGH_VERSION_OLD to $AGH_VERSION_NEW"
-    # Create backup of AdGuardHome
-    if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
-        log "WARNING" "Skipping backup, because --ignore-free-space is used"
+    log "INFO" "We are going to update AdGuard Home now."
+    log "INFO" "Do you want to continue? (y/N)"
+    read answer
+    if [ "$answer" != "${answer#[Yy]}" ]; then
+        log "INFO" "Ok, continuing ..."
+        # Create backup of AdGuardHome
+        if [ "$IGNORE_FREE_SPACE" -eq 1 ]; then
+            log "WARNING" "Skipping backup, because --ignore-free-space is used"
+        else
+            backup
+        fi
+        # Download latest version of AdGuardHome
+        log "INFO" "Downloading latest Adguard Home version ..."
+        AGH_VERSION_DOWNLOAD="$AGH_TINY_URL/$AGH_ARCH"
+        log "INFO" "Downloading $AGH_VERSION_DOWNLOAD ..."
+        curl -L -s --output $TEMP_FILE $AGH_VERSION_DOWNLOAD
+        AGH_BINARY=$(find /tmp -name AdGuardHomeNew -type f)
+        if [ -f $AGH_BINARY ]; then
+            log "SUCCESS" "AdGuardHome binary found, download was successful!"
+        else
+            log "ERROR" "AdGuardHome binary not found. Exiting ..."
+            log "ERROR" "Please report this issue on the GL.iNET forum."
+            exit 1
+        fi
+        # Stop AdGuardHome
+        log "INFO" "Stopping Adguard Home ..."
+        /etc/init.d/adguardhome stop 2 &>/dev/null
+        sleep 4
+        # Stop it by killing the process if it's still running
+        AGH_PID=$(pgrep AdGuardHome)
+        if [ -n "$AGH_PID" ]; then
+            killall AdGuardHome 2>/dev/null
+        fi
+        # Remove old AdGuardHome
+        log "INFO" "Moving AdGuardHome to /usr/bin ..."
+        rm /usr/bin/AdGuardHome
+        mv $AGH_BINARY /usr/bin/AdGuardHome
+        chmod +x /usr/bin/AdGuardHome
+        # Restart AdGuardHome
+        log "INFO" "Restarting AdGuard Home ..."
+        /etc/init.d/adguardhome restart 2 &>/dev/null
+        AGH_VERSION_CHECK=$(/usr/bin/AdGuardHome --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
+        log "SUCCESS" "AdGuard Home has been updated to version $AGH_VERSION_CHECK"
+        # Enable query log
+        enable_querylog
+        # Make persistance
+        log "INFO" "The update was successful." 
+        log "WARNING" "Do you want to make the installation permanent?"
+        log "INFO" "This will make your AdGuard Home config persistant"
+        log "INFO" "even after a firmware up-/ or downgrade."
+        log "INFO" "It could lead to issues, even if not likely. Just keep that in mind."
+        log "INFO" "In worst case, you might need to remove the config"
+        log "INFO" "from /etc/sysupgrade.conf and /etc/rc.local."
+        log "WARNING" "Do you want to make the installation permanent? (y/N)"
+        read answer_create_persistance
+        if [ "$answer_create_persistance" != "${answer_create_persistance#[Yy]}" ]; then
+            log "INFO" "Making installation permanent ..."
+            create_persistance_script
+            upgrade_persistance
+            /usr/bin/enable-adguardhome-update-check
+        fi
     else
-        backup
+        log "ERROR" "Ok, see you next time!"
+        exit 0
     fi
-    # Download latest version of AdGuardHome
-    log "INFO" "Downloading latest Adguard Home version ..."
-    curl -L -s --output $TEMP_FILE $AGH_VERSION_DOWNLOAD
-    AGH_BINARY=$(find /tmp -name AdGuardHomeNew -type f)
-    if [ -f $AGH_BINARY ]; then
-        log "SUCCESS" "AdGuardHome binary found, download was successful!"
-    else
-        log "ERROR" "AdGuardHome binary not found. Exiting ..."
-        log "ERROR" "Please report this issue on the GL.iNET forum."
-        exit 1
-    fi
-    # Stop AdGuardHome
-    log "INFO" "Stopping Adguard Home ..."
-    /etc/init.d/adguardhome stop 2 &>/dev/null
-    sleep 4
-    # Stop it by killing the process if it's still running
-    AGH_PID=$(pgrep AdGuardHome)
-    if [ -n "$AGH_PID" ]; then
-        killall AdGuardHome 2>/dev/null
-    fi
-    # Remove old AdGuardHome
-    log "INFO" "Moving AdGuardHome to /usr/bin ..."
-    rm /usr/bin/AdGuardHome
-    mv $AGH_BINARY /usr/bin/AdGuardHome
-    chmod +x /usr/bin/AdGuardHome
-    # Restart AdGuardHome
-    log "INFO" "Restarting AdGuard Home ..."
-    /etc/init.d/adguardhome restart 2 &>/dev/null
-    AGH_VERSION_CHECK=$(/usr/bin/AdGuardHome --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
-    log "SUCCESS" "AdGuard Home has been updated to version $AGH_VERSION_CHECK"
-    # Enable query log
-    enable_querylog
-    # Make persistance
-    echo -e "\033[93m┌──────────────────────────────────────────────────────────────────────────────────────────────────────────┐\033[0m"
-    echo -e "\033[93m| The update was successful. Do you want to make the installation permanent?                               |\033[0m"
-    echo -e "\033[93m| This will make your AdGuard Home config persistant - even after a firmware up-/ or downgrade.            |\033[0m"
-    echo -e "\033[93m| It could lead to issues, even if not likely. Just keep that in mind.                                     |\033[0m"
-    echo -e "\033[93m| In worst case, you might need to remove the config from /etc/sysupgrade.conf and /etc/rc.local.          |\033[0m"
-    echo -e "\033[93m| Do you want to make the installation permanent? (y/N)                                                    |\033[0m"
-    echo -e "\033[93m└──────────────────────────────────────────────────────────────────────────────────────────────────────────┘\033[0m"
-    read answer_create_persistance
-    if [ "$answer_create_persistance" != "${answer_create_persistance#[Yy]}" ]; then
-        log "INFO" "Making installation permanent ..."
-        create_persistance_script
-        upgrade_persistance
-        /usr/bin/enable-adguardhome-update-check
-    fi
-else
-    log "SUCCESS" "Ok, see you next time!"
-fi
 log "SUCCESS" "Script finished."
 exit 0

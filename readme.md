@@ -6,12 +6,14 @@ This script is designed to update AdGuard Home on GL.iNet routers.
 
 It was created by [Admon](https://forum.gl-inet.com/u/admon/) for the GL.iNet community and tested on the MT-6000 (Flint2) with firmware 4.6.0 but works fine on nearly all GL.iNet routers.
 
+[![Prebuild AdGuard Home for GL.iNet devices](https://github.com/Admonstrator/glinet-adguard-updater/actions/workflows/build-adguardhome.yaml/badge.svg)](https://github.com/Admonstrator/glinet-adguard-updater/actions/workflows/build-adguardhome.yaml)
+
 ## Usage
 
 Run the script with the following command:
 
 ```shell
-./update-adguardhome.sh [--ignore-free-space]
+./update-adguardhome.sh [--ignore-free-space] [--select-release]
 ```
 
 You can run it without cloning the repository by using the following command:
@@ -47,6 +49,10 @@ For disabling query logging to file, you can run the following command:
 sed -i '/^querylog:/,/^[^ ]/ s/^  file_enabled: .*/  file_enabled: false/' /etc/AdGuardHome/config.yaml
 /etc/init.d/adguardhome restart
 ```
+
+## Selecting a release
+
+By default, the script will install the latest stable release of AdGuard Home. You can use `--select-release` to select a specific release. The script will ask you which release you want to install.
 
 ## Feedback
 
