@@ -122,7 +122,7 @@ preflight_check() {
         log "SUCCESS" "Firmware version: $FIRMWARE_VERSION"
     fi
     if [ "$MODEL" = "GL.iNet GL-MT1300" ]; then
-        ARCH = "mipsle"
+        ARCH="mipsle"
     fi
     if [ "$ARCH" = "aarch64" ]; then
         log "SUCCESS" "Architecture: arm64"
