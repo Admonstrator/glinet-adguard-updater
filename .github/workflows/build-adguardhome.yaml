@@ -26,7 +26,7 @@ jobs:
       - name: Get specified or latest ${{ env.SOFTWARE_NAME }} tag
         id: tag
         run: |
-          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+          if [ "${{ github.event.inputs.tag }}" != "latest" ] && [ "${{ github.event.inputs.tag }}" != "" ]; then
             selected_tag="${{ github.event.inputs.tag }}"
           else
             selected_tag=$(
