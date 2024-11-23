@@ -8,7 +8,7 @@
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
 # Date: 2024-03-13
-SCRIPT_VERSION="2024.10.27.02"
+SCRIPT_VERSION="2024.11.23.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download"
@@ -395,5 +395,11 @@ preflight_check
         log "ERROR" "Ok, see you next time!"
         exit 0
     fi
-log "SUCCESS" "Script finished."
+log "SUCCESS" "Script finished!"
+log "WARNING" "Please keep in mind:"
+log "WARNING" "Upgrading the firmware will downgrade AdGuard Home!"
+log "WARNING" "This will lead to non-working AdGuard Home."
+log "WARNING" "Please disable AdGuard Home before upgrading the firmware."
+log "WARNING" "After the firmware upgrade, you need to update AdGuard Home again."
+log "WARNING" "It won't work otherwise."
 exit 0
