@@ -7,8 +7,7 @@
 # Description: This script updates AdGuardHome to the latest version.
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
-# Date: 2024-03-13
-SCRIPT_VERSION="2024.11.23.01"
+SCRIPT_VERSION="2025.02.17.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download"
@@ -134,13 +133,16 @@ preflight_check() {
     elif [ "$ARCH" = "mips" ]; then
         # Check for GL.iNet GL-MT1300 as it uses mipsle
         MODEL=$(grep 'machine' /proc/cpuinfo | awk -F ': ' '{print $2}')
-        if [ "$MODEL" = "GL.iNet GL-MT1300" ]; then
+        case "$MODEL" in
+        "GL.iNet GL-MT1300" | "GL-MT300N-V2" | "GL-SFT1200")
             log "SUCCESS" "Architecture: mipsle"
             AGH_ARCH="AdGuardHome-linux_mipsle_softfloat"
-        else
+            ;;
+        *)
             log "SUCCESS" "Architecture: mips"
             AGH_ARCH="AdGuardHome-linux_mips_softfloat"
-        fi
+            ;;
+        esac
     else
         log "ERROR" "This script only works on arm64 and armv7."
         PREFLIGHT=1
