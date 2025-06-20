@@ -7,7 +7,7 @@
 # Description: This script updates AdGuardHome to the latest version.
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
-SCRIPT_VERSION="2025.02.17.01"
+SCRIPT_VERSION="2025.06.20.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download"
@@ -234,6 +234,17 @@ enable_querylog() {
     fi
 }
 
+disable_multipath_tcp() {
+    log "INFO" "Disabling multipath TCP ..."
+    if ! grep -q 'procd_set_param env GODEBUG=multipathtcp=0' /etc/init.d/adguardhome; then
+        sed -i '/procd_set_param stderr 1/a\procd_set_param env GODEBUG=multipathtcp=0' /etc/init.d/adguardhome
+    fi
+    log "SUCCESS" "Multipath TCP is now disabled."
+    log "INFO" "This is to prevent issues with AdGuard Home on GL.iNet routers."
+    log "INFO" "If you want to re-enable multipath TCP, please remove the line"
+    log "INFO" "'procd_set_param env GODEBUG=multipathtcp=0' from /etc/init.d/adguardhome"
+}
+
 # Function to choose a GitHub release label
 choose_release_label() {
     log "INFO" "Fetching available release labels..."
@@ -377,6 +388,8 @@ preflight_check
         log "SUCCESS" "AdGuard Home has been updated to version $AGH_VERSION_CHECK"
         # Enable query log
         enable_querylog
+        # Disable multipath TCP
+        disable_multipath_tcp
         # Make persistance
         log "INFO" "The update was successful." 
         log "WARNING" "Do you want to make the installation permanent?"
