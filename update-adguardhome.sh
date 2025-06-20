@@ -7,7 +7,7 @@
 # Description: This script updates AdGuardHome to the latest version.
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
-SCRIPT_VERSION="2025.06.20.01"
+SCRIPT_VERSION="2025.06.20.02"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download"
@@ -237,7 +237,10 @@ enable_querylog() {
 disable_multipath_tcp() {
     log "INFO" "Disabling multipath TCP ..."
     if ! grep -q 'procd_set_param env GODEBUG=multipathtcp=0' /etc/init.d/adguardhome; then
-        sed -i '/procd_set_param stderr 1/a\procd_set_param env GODEBUG=multipathtcp=0' /etc/init.d/adguardhome
+        sed -i '/procd_set_param stderr 1/a\    procd_set_param env GODEBUG=multipathtcp=0' /etc/init.d/adguardhome
+    else
+        log "INFO" "Multipath TCP is already disabled in /etc/init.d/adguardhome"
+        return 0
     fi
     log "SUCCESS" "Multipath TCP is now disabled."
     log "INFO" "This is to prevent issues with AdGuard Home on GL.iNet routers."
