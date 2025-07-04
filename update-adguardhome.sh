@@ -7,7 +7,7 @@
 # Description: This script updates AdGuardHome to the latest version.
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
-SCRIPT_VERSION="2025.06.20.02"
+SCRIPT_VERSION="2025.07.04.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download"
@@ -38,12 +38,15 @@ create_persistance_script() {
     log "INFO" "Creating persistance script in /usr/bin/enable-adguardhome-update-check ..."
     cat <<EOF >/usr/bin/enable-adguardhome-update-check
     #!/bin/sh
-    # This script enables the update check for AdGuard Home
+    # This script enables the update check for AdGuard Home and disables multipath TCP.
     # It should be executed after every reboot
     # Author: Admon
-    # Date: 2024-03-06
+    # Date: 2024-07-04
     if [ -f /etc/init.d/adguardhome ] 
     then
+        if ! grep -q 'procd_set_param env GODEBUG=multipathtcp=0' /etc/init.d/adguardhome; then
+            sed -i '/procd_set_param stderr 1/a\    procd_set_param env GODEBUG=multipathtcp=0' /etc/init.d/adguardhome
+        fi
         sed -i '/procd_set_param command \/usr\/bin\/AdGuardHome/ s/--no-check-update //' "/etc/init.d/adguardhome"
     else
         echo "Startup script not found. Exiting ..."
