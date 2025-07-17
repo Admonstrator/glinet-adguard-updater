@@ -4,7 +4,7 @@
 
 This script is designed to update AdGuard Home on GL.iNet routers.
 
-It was created by [Admon](https://forum.gl-inet.com/u/admon/) for the GL.iNet community and tested on the MT-6000 (Flint2) with firmware 4.6.0 but works fine on nearly all GL.iNet routers.
+It was created by [Admon](https://forum.gl-inet.com/u/admon/) for the GL.iNet community and tested on the MT-6000 (Flint 2) and GL-BE9300 (Flint 3) with firmware 4.7 and 4.8 but works fine on nearly all GL.iNet routers.
 
 [![Prebuild AdGuard Home for GL.iNet devices](https://github.com/Admonstrator/glinet-adguard-updater/actions/workflows/build-adguardhome.yaml/badge.svg)](https://github.com/Admonstrator/glinet-adguard-updater/actions/workflows/build-adguardhome.yaml)
 
