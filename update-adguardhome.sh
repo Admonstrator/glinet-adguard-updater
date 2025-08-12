@@ -416,11 +416,18 @@ preflight_check
         log "ERROR" "Ok, see you next time!"
         exit 0
     fi
+
+    # Show firmware upgrade warnings only if persistence wasn't created
+    if [ "$answer_create_persistance" != "${answer_create_persistance#[Yy]}" ]; then
+        : # Persistence was created, no warnings needed
+    else
+        log "WARNING" "Please keep in mind:"
+        log "WARNING" "Upgrading the firmware will downgrade AdGuard Home!"
+        log "WARNING" "This will lead to non-working AdGuard Home."
+        log "WARNING" "Please disable AdGuard Home before upgrading the firmware."
+        log "WARNING" "After the firmware upgrade, you need to update AdGuard Home again."
+        log "WARNING" "It won't work otherwise."
+    fi
+
 log "SUCCESS" "Script finished!"
-log "WARNING" "Please keep in mind:"
-log "WARNING" "Upgrading the firmware will downgrade AdGuard Home!"
-log "WARNING" "This will lead to non-working AdGuard Home."
-log "WARNING" "Please disable AdGuard Home before upgrading the firmware."
-log "WARNING" "After the firmware upgrade, you need to update AdGuard Home again."
-log "WARNING" "It won't work otherwise."
 exit 0
