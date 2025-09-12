@@ -7,7 +7,7 @@
 # Description: This script updates AdGuardHome to the latest version.
 # Thread: https://forum.gl-inet.com/t/how-to-update-adguard-home-testing/39398
 # Author: Admon
-SCRIPT_VERSION="2025.08.12.01"
+SCRIPT_VERSION="2025.09.12.01"
 SCRIPT_NAME="update-adguardhome.sh"
 UPDATE_URL="https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh"
 AGH_TINY_URL="https://github.com/Admonstrator/glinet-adguard-updater/releases/latest/download"
@@ -387,16 +387,16 @@ preflight_check
         rm /usr/bin/AdGuardHome
         mv $AGH_BINARY /usr/bin/AdGuardHome
         chmod +x /usr/bin/AdGuardHome
+        # Enable query log
+        enable_querylog
+        # Disable multipath TCP
+        disable_multipath_tcp
         # Restart AdGuardHome
         log "INFO" "Restarting AdGuard Home ..."
         /etc/init.d/adguardhome restart 2 &>/dev/null
         AGH_VERSION_CHECK=$(/usr/bin/AdGuardHome --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
         log "SUCCESS" "AdGuard Home has been updated to version $AGH_VERSION_CHECK"
-        # Enable query log
-        enable_querylog
-        # Disable multipath TCP
-        disable_multipath_tcp
-        # Make persistance
+        # Make persistance optional
         log "INFO" "The update was successful." 
         log "WARNING" "Do you want to make the installation permanent?"
         log "INFO" "This will make your AdGuard Home config persistant"
