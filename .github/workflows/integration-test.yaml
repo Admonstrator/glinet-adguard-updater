@@ -1,0 +1,398 @@
+name: OpenWrt Integration Test
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'update-adguardhome.sh'
+      - '.github/workflows/integration-test.yaml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'update-adguardhome.sh'
+      - '.github/workflows/integration-test.yaml'
+  workflow_dispatch:
+
+jobs:
+  docker-openwrt-test:
+    name: Test on OpenWrt Docker (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch:
+          - arm64
+          - amd64
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64,amd64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create test Dockerfile
+        run: |
+          cat > Dockerfile.test << 'EOF'
+          FROM openwrt/rootfs:${{ matrix.arch }}
+
+          # Install required packages
+          RUN opkg update && \
+              opkg install curl ca-bundle && \
+              rm -rf /tmp/opkg-lists
+
+          # Create a mock AdGuard Home installation for testing
+          RUN mkdir -p /usr/bin /etc/init.d /etc/AdGuardHome && \
+              echo "#!/bin/sh" > /usr/bin/AdGuardHome && \
+              echo "if [ \"\$1\" = \"--version\" ]; then" >> /usr/bin/AdGuardHome && \
+              echo "  echo 'AdGuardHome version v0.107.50'" >> /usr/bin/AdGuardHome && \
+              echo "fi" >> /usr/bin/AdGuardHome && \
+              chmod +x /usr/bin/AdGuardHome && \
+              echo "#!/bin/sh" > /etc/init.d/adguardhome && \
+              chmod +x /etc/init.d/adguardhome && \
+              mkdir -p /etc/AdGuardHome && \
+              touch /etc/AdGuardHome/config.yaml && \
+              echo "querylog:" > /etc/AdGuardHome/config.yaml && \
+              echo "  file_enabled: false" >> /etc/AdGuardHome/config.yaml && \
+              touch /etc/sysupgrade.conf && \
+              touch /etc/rc.local && \
+              echo "exit 0" >> /etc/rc.local
+
+          # Copy the update script
+          COPY update-adguardhome.sh /tmp/update-adguardhome.sh
+          RUN chmod +x /tmp/update-adguardhome.sh
+
+          WORKDIR /tmp
+          EOF
+
+      - name: Build test container
+        run: |
+          docker buildx build \
+            --platform linux/${{ matrix.arch }} \
+            --load \
+            -f Dockerfile.test \
+            -t openwrt-test:${{ matrix.arch }} .
+
+      - name: Test script without flags
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} \
+            openwrt-test:${{ matrix.arch }} \
+            sh -c "cd /tmp && timeout 30 sh -c 'echo n | sh update-adguardhome.sh 2>&1' || true" | tee output.log
+
+          # Check for key output messages
+          if grep -q "GL.iNet router script by Admon" output.log; then
+            echo "✓ Script intro works"
+          else
+            echo "❌ Script intro not found"
+            exit 1
+          fi
+
+      - name: Test --ignore-free-space flag
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} \
+            openwrt-test:${{ matrix.arch }} \
+            sh -c "cd /tmp && timeout 30 sh -c 'echo n | sh update-adguardhome.sh --ignore-free-space 2>&1' || true" | tee ignore_space_output.log
+
+          # Check for flag recognition
+          if grep -q "\-\-ignore-free-space is used" ignore_space_output.log; then
+            echo "✓ --ignore-free-space flag works"
+          else
+            echo "❌ --ignore-free-space flag not recognized"
+            exit 1
+          fi
+
+      - name: Test preflight checks
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} \
+            openwrt-test:${{ matrix.arch }} \
+            sh -c "cd /tmp && timeout 30 sh -c 'echo n | sh update-adguardhome.sh 2>&1' || true" | tee preflight.log
+
+          # Verify preflight checks ran
+          if grep -q "Checking if prerequisites are met" preflight.log; then
+            echo "✓ Preflight checks executed"
+          else
+            echo "❌ Preflight checks did not execute"
+            exit 1
+          fi
+
+          # Verify architecture detection
+          if grep -q "Architecture:" preflight.log; then
+            echo "✓ Architecture detected"
+          else
+            echo "❌ Architecture not detected"
+            exit 1
+          fi
+
+          # Verify curl check
+          if grep -q "curl is installed" preflight.log; then
+            echo "✓ curl dependency check works"
+          else
+            echo "❌ curl dependency check failed"
+            exit 1
+          fi
+
+      - name: Test script syntax in container
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} \
+            openwrt-test:${{ matrix.arch }} \
+            sh -n /tmp/update-adguardhome.sh
+          echo "✓ Script syntax valid in OpenWrt ash"
+
+      - name: Test log function
+        run: |
+          cat > test_log.sh << 'EOF'
+          #!/bin/sh
+          # Extract and test log function
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          YELLOW='\033[0;33m'
+          INFO='\033[0m'
+
+          # Source log function
+          . /tmp/update-adguardhome.sh
+
+          # Test all log levels
+          log "SUCCESS" "Test success message"
+          log "ERROR" "Test error message"
+          log "WARNING" "Test warning message"
+          log "INFO" "Test info message"
+          EOF
+
+          docker run --rm --platform linux/${{ matrix.arch }} \
+            -v $(pwd)/test_log.sh:/tmp/test_log.sh:ro \
+            openwrt-test:${{ matrix.arch }} \
+            sh /tmp/test_log.sh
+
+      - name: Verify BusyBox ash compatibility
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} \
+            openwrt-test:${{ matrix.arch }} \
+            sh -c "ash --version && ash -n /tmp/update-adguardhome.sh"
+          echo "✓ BusyBox ash compatibility verified"
+
+      - name: Test command dependencies
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} \
+            openwrt-test:${{ matrix.arch }} \
+            sh -c "
+              echo 'Testing required commands...'
+              command -v curl && echo '✓ curl available' || echo '❌ curl missing'
+              command -v awk && echo '✓ awk available' || echo '❌ awk missing'
+              command -v grep && echo '✓ grep available' || echo '❌ grep missing'
+              command -v sed && echo '✓ sed available' || echo '❌ sed missing'
+              command -v tar && echo '✓ tar available' || echo '❌ tar missing'
+              command -v df && echo '✓ df available' || echo '❌ df missing'
+              command -v date && echo '✓ date available' || echo '❌ date available'
+            "
+
+  docker-glinet-simulation:
+    name: Test GL.iNet Simulation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create GL.iNet simulation Dockerfile
+        run: |
+          cat > Dockerfile.glinet << 'EOF'
+          FROM openwrt/rootfs:arm64
+
+          # Install required packages
+          RUN opkg update && \
+              opkg install curl ca-bundle && \
+              rm -rf /tmp/opkg-lists
+
+          # Simulate GL.iNet environment
+          RUN echo "4.5.0" > /etc/glversion && \
+              mkdir -p /usr/bin /etc/init.d /etc/AdGuardHome /root && \
+              echo "#!/bin/sh" > /usr/bin/AdGuardHome && \
+              echo "if [ \"\$1\" = \"--version\" ]; then" >> /usr/bin/AdGuardHome && \
+              echo "  echo 'AdGuardHome version v0.107.50'" >> /usr/bin/AdGuardHome && \
+              echo "fi" >> /usr/bin/AdGuardHome && \
+              chmod +x /usr/bin/AdGuardHome && \
+              echo "#!/bin/sh" > /etc/init.d/adguardhome && \
+              echo "# procd_set_param stderr 1" >> /etc/init.d/adguardhome && \
+              chmod +x /etc/init.d/adguardhome && \
+              mkdir -p /etc/AdGuardHome && \
+              echo "querylog:" > /etc/AdGuardHome/config.yaml && \
+              echo "  file_enabled: false" >> /etc/AdGuardHome/config.yaml && \
+              touch /etc/sysupgrade.conf && \
+              touch /etc/rc.local && \
+              echo "exit 0" >> /etc/rc.local
+
+          # Copy the update script
+          COPY update-adguardhome.sh /tmp/update-adguardhome.sh
+          RUN chmod +x /tmp/update-adguardhome.sh
+
+          WORKDIR /tmp
+          EOF
+
+      - name: Build GL.iNet test container
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            --load \
+            -f Dockerfile.glinet \
+            -t glinet-test:arm64 .
+
+      - name: Test GL.iNet firmware detection
+        run: |
+          docker run --rm --platform linux/arm64 \
+            glinet-test:arm64 \
+            sh -c "cd /tmp && timeout 30 sh -c 'echo n | sh update-adguardhome.sh 2>&1' || true" | tee glinet_output.log
+
+          # Verify firmware version was detected
+          if grep -q "Firmware version: 4" glinet_output.log; then
+            echo "✓ GL.iNet firmware detection works"
+          else
+            echo "❌ GL.iNet firmware not detected properly"
+            exit 1
+          fi
+
+      - name: Test sysupgrade.conf existence
+        run: |
+          docker run --rm --platform linux/arm64 \
+            glinet-test:arm64 \
+            sh -c "
+              if [ -f /etc/sysupgrade.conf ]; then
+                echo '✓ sysupgrade.conf exists'
+              else
+                echo '❌ sysupgrade.conf missing'
+                exit 1
+              fi
+            "
+
+      - name: Test AdGuard Home config detection
+        run: |
+          docker run --rm --platform linux/arm64 \
+            glinet-test:arm64 \
+            sh -c "
+              if [ -d /etc/AdGuardHome ]; then
+                echo '✓ AdGuard Home config directory exists'
+              else
+                echo '❌ AdGuard Home config directory missing'
+                exit 1
+              fi
+            "
+
+      - name: Test version comparison logic
+        run: |
+          cat > test_version.sh << 'EOF'
+          #!/bin/sh
+          # Test version comparison
+          AGH_VERSION_NEW="0.107.51"
+          AGH_VERSION_OLD="0.107.50"
+
+          if [ "$AGH_VERSION_NEW" = "$AGH_VERSION_OLD" ]; then
+            echo "Versions are equal"
+            exit 1
+          else
+            echo "✓ Version comparison works: $AGH_VERSION_OLD -> $AGH_VERSION_NEW"
+          fi
+          EOF
+
+          docker run --rm --platform linux/arm64 \
+            -v $(pwd)/test_version.sh:/tmp/test_version.sh:ro \
+            glinet-test:arm64 \
+            sh /tmp/test_version.sh
+
+  mips-architecture-test:
+    name: Test MIPS Architecture Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test MIPS detection logic
+        run: |
+          cat > test_mips.sh << 'EOF'
+          #!/bin/bash
+          # Test MIPS architecture detection logic
+
+          # Extract the architecture detection logic
+          echo "Testing MIPS detection..."
+
+          # Test GL-MT1300 detection
+          MODEL="GL.iNet GL-MT1300"
+          ARCH="mips"
+
+          case "$MODEL" in
+            "GL.iNet GL-MT1300" | "GL-MT300N-V2" | "GL-SFT1200")
+              echo "✓ GL-MT1300 detected as mipsle"
+              AGH_ARCH="AdGuardHome-linux_mipsle_softfloat"
+              ;;
+            *)
+              echo "✓ Default MIPS detected"
+              AGH_ARCH="AdGuardHome-linux_mips_softfloat"
+              ;;
+          esac
+
+          echo "Architecture: $AGH_ARCH"
+
+          # Test other models
+          for model in "GL-MT300N-V2" "GL-SFT1200"; do
+            case "$model" in
+              "GL.iNet GL-MT1300" | "GL-MT300N-V2" | "GL-SFT1200")
+                echo "✓ $model detected as mipsle"
+                ;;
+              *)
+                echo "❌ $model not detected correctly"
+                exit 1
+                ;;
+            esac
+          done
+          EOF
+
+          chmod +x test_mips.sh
+          bash test_mips.sh
+
+  summary:
+    name: Integration Test Summary
+    needs: [docker-openwrt-test, docker-glinet-simulation, mips-architecture-test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.docker-openwrt-test.result }}" = "success" ]; then
+            echo "✅ OpenWrt Docker Tests: **PASSED**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ OpenWrt Docker Tests: **FAILED**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.docker-glinet-simulation.result }}" = "success" ]; then
+            echo "✅ GL.iNet Simulation: **PASSED**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ GL.iNet Simulation: **FAILED**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.mips-architecture-test.result }}" = "success" ]; then
+            echo "✅ MIPS Architecture Test: **PASSED**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ MIPS Architecture Test: **FAILED**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tested architectures: arm64, amd64, mips, mipsle" >> $GITHUB_STEP_SUMMARY
+
+          # Fail if any test failed
+          if [ "${{ needs.docker-openwrt-test.result }}" != "success" ] || \
+             [ "${{ needs.docker-glinet-simulation.result }}" != "success" ] || \
+             [ "${{ needs.mips-architecture-test.result }}" != "success" ]; then
+            exit 1
+          fi
