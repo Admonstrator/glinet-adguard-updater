@@ -38,7 +38,7 @@ jobs:
       - name: Create test Dockerfile
         run: |
           cat > Dockerfile.test << 'EOF'
-          FROM openwrt/rootfs:${{ matrix.arch }}
+          FROM openwrt/rootfs:latest
 
           # Install required packages
           RUN opkg update && \
@@ -207,7 +207,7 @@ jobs:
       - name: Create GL.iNet simulation Dockerfile
         run: |
           cat > Dockerfile.glinet << 'EOF'
-          FROM openwrt/rootfs:arm64
+          FROM openwrt/rootfs:latest
 
           # Install required packages
           RUN opkg update && \
