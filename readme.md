@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ AdGuard Home Updater for GL.iNet Routers
+# AdGuard Home Updater for GL.iNet Routers
 
 [![Latest Release](https://img.shields.io/github/v/release/Admonstrator/glinet-adguard-updater?style=for-the-badge&logo=github&color=blue)](https://github.com/Admonstrator/glinet-adguard-updater/releases/latest)
 [![Script Version](https://img.shields.io/badge/script-2025.09.12.01-green?style=for-the-badge&logo=linux)](https://github.com/Admonstrator/glinet-adguard-updater)
@@ -232,6 +232,6 @@ If you find this script helpful, consider supporting its development:
 
 **Made with ❤️ by [Admon](https://github.com/Admonstrator)**
 
-[⬆ Back to Top](#-adguard-home-updater-for-glinet-routers)
+[⬆ Back to Top](#adguard-home-updater-for-glinet-routers)
 
 </div>
