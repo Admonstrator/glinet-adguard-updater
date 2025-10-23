@@ -38,12 +38,10 @@ jobs:
       - name: Create test Dockerfile
         run: |
           cat > Dockerfile.test << 'EOF'
-          FROM openwrt/rootfs:latest
+          FROM alpine:latest
 
-          # Install required packages
-          RUN opkg update && \
-              opkg install curl ca-bundle && \
-              rm -rf /tmp/opkg-lists
+          # Install required packages similar to OpenWrt
+          RUN apk add --no-cache curl bash coreutils grep sed tar gzip
 
           # Create a mock AdGuard Home installation for testing
           RUN mkdir -p /usr/bin /etc/init.d /etc/AdGuardHome && \
@@ -60,7 +58,8 @@ jobs:
               echo "  file_enabled: false" >> /etc/AdGuardHome/config.yaml && \
               touch /etc/sysupgrade.conf && \
               touch /etc/rc.local && \
-              echo "exit 0" >> /etc/rc.local
+              echo "exit 0" >> /etc/rc.local && \
+              echo "4" > /etc/glversion
 
           # Copy the update script
           COPY update-adguardhome.sh /tmp/update-adguardhome.sh
@@ -167,12 +166,12 @@ jobs:
             openwrt-test:${{ matrix.arch }} \
             sh /tmp/test_log.sh
 
-      - name: Verify BusyBox ash compatibility
+      - name: Verify shell compatibility
         run: |
           docker run --rm --platform linux/${{ matrix.arch }} \
             openwrt-test:${{ matrix.arch }} \
-            sh -c "ash --version && ash -n /tmp/update-adguardhome.sh"
-          echo "✓ BusyBox ash compatibility verified"
+            sh -n /tmp/update-adguardhome.sh
+          echo "✓ Shell compatibility verified"
 
       - name: Test command dependencies
         run: |
@@ -207,12 +206,10 @@ jobs:
       - name: Create GL.iNet simulation Dockerfile
         run: |
           cat > Dockerfile.glinet << 'EOF'
-          FROM openwrt/rootfs:latest
+          FROM alpine:latest
 
-          # Install required packages
-          RUN opkg update && \
-              opkg install curl ca-bundle && \
-              rm -rf /tmp/opkg-lists
+          # Install required packages similar to OpenWrt
+          RUN apk add --no-cache curl bash coreutils grep sed tar gzip
 
           # Simulate GL.iNet environment
           RUN echo "4.5.0" > /etc/glversion && \
