@@ -2,8 +2,14 @@ name: Update Badges
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs daily at midnight
-  workflow_dispatch:  # Allows manual triggering
+    - cron: "0 0 * * *" # Runs daily at midnight
+  workflow_dispatch: # Allows manual triggering
+  push:
+    branches:
+      - main
+    paths:
+      - readme.template.md
+      - update-adguardhome.sh
 
 permissions:
   contents: write
@@ -25,7 +31,7 @@ jobs:
       - name: Get script version
         id: script_version
         run: |
-          VERSION=$(grep -oP 'SCRIPT_VERSION="\K[^"]+' update-adguardhome.sh)
+          VERSION=$(grep -oP '^SCRIPT_VERSION="\K[^"]+' update-adguardhome.sh | head -n 1)
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Script version: ${VERSION}"
 
@@ -33,12 +39,12 @@ jobs:
         run: |
           ADGUARD_VERSION="${{ steps.adguard_release.outputs.version }}"
           SCRIPT_VERSION="${{ steps.script_version.outputs.version }}"
-          
+
           # Replace placeholders in template
           sed -e "s/{{ADGUARD_VERSION}}/${ADGUARD_VERSION}/g" \
               -e "s/{{SCRIPT_VERSION}}/${SCRIPT_VERSION}/g" \
               readme.template.md > readme.md
-          
+
           echo "Updated README with AdGuard Home version: ${ADGUARD_VERSION}"
           echo "Updated README with script version: ${SCRIPT_VERSION}"
 
