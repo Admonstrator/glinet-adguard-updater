@@ -1,40 +1,45 @@
 <div align="center">
 
-# AdGuard Home Updater for GL.iNet Routers
+<img src="images/robbenlogo-glinet-small.webp" width="300" alt="GL.iNet AdGuard Home Logo" style="border-radius: 10px; margin: 20px 0;">
 
-[![Latest Release](https://img.shields.io/github/v/release/Admonstrator/glinet-adguard-updater?style=for-the-badge&logo=github&color=blue)](https://github.com/Admonstrator/glinet-adguard-updater/releases/latest)
-[![Script Version](https://img.shields.io/badge/script-2025.09.12.01-green?style=for-the-badge&logo=linux)](https://github.com/Admonstrator/glinet-adguard-updater)
-[![License](https://img.shields.io/github/license/Admonstrator/glinet-adguard-updater?style=for-the-badge)](LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/Admonstrator/glinet-adguard-updater/build-adguardhome.yaml?style=for-the-badge&logo=github-actions&label=Build)](https://github.com/Admonstrator/glinet-adguard-updater/actions/workflows/build-adguardhome.yaml)
-
-[![GitHub Sponsors](https://img.shields.io/github/sponsors/admonstrator?style=for-the-badge&logo=github&label=Sponsor&color=EA4AAA)](https://github.com/sponsors/admonstrator)
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/admon)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/admon)
-[![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/aaronviehl)
-
-<img src="images/screen.jpg" width="600" alt="AdGuard Home Updater Screenshot" style="border-radius: 10px; margin: 20px 0;">
+## AdGuard Home Updater for GL.iNet Routers
 
 **Keep AdGuard Home up-to-date on your GL.iNet router with ease!**
 
-Created by [Admon](https://forum.gl-inet.com/u/admon/) for the GL.iNet community
-Tested on MT-6000 (Flint 2) and GL-BE9300 (Flint 3) with firmware 4.7 and 4.8
-Works on nearly all GL.iNet routers
+[![Latest Release](https://img.shields.io/github/v/release/Admonstrator/glinet-adguard-updater?style=for-the-badge&logo=github&color=blue)](https://github.com/Admonstrator/glinet-adguard-updater/releases/latest) [![License](https://img.shields.io/github/license/Admonstrator/glinet-adguard-updater?style=for-the-badge)](LICENSE) [![Stars](https://img.shields.io/github/stars/Admonstrator/glinet-adguard-updater?style=for-the-badge)](https://github.com/Admonstrator/glinet-adguard-updater/stargazers)
 
-[Quick Start](#-quick-start) • [Documentation](#-arguments) • [Support](#-feedback) • [Reverting](#-reverting-changes)
+---
+
+## 💖 Support the Project
+
+If you find this tool helpful, consider supporting its development:
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsors-EA4AAA?style=for-the-badge&logo=github)](https://github.com/sponsors/admonstrator) [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/admon) [![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/admon) [![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/aaronviehl)
 
 </div>
 
 ---
 
+## 📖 About
+
+This script automatically fetches and installs the latest AdGuard Home version, optimized specifically for GL.iNet routers. Keep your AdGuard Home installation current with just one command!
+
+Created by [Admon](https://forum.gl-inet.com/u/admon/) for the GL.iNet community. Tested on nearly all GL.iNet routers with firmware 4.x.
+
+> 🎖️ **Community Maintained** – Part of the [GL.iNet Toolbox](https://github.com/Admonstrator/glinet-toolbox) project
+> ⚠️ **Independent Project** – Not officially affiliated with GL.iNet or AdGuard
+
+---
+
 ## ✨ Features
 
-- 🚀 **Automatic Updates** - Fetches and installs the latest AdGuard Home version
-- 📦 **Tiny Version Support** - Uses pre-compressed binaries optimized for GL.iNet routers (6 MB vs 32 MB)
-- 🎯 **Version Selection** - Install specific AdGuard Home versions
-- 💾 **Query Logging Control** - Optionally enable query logging to file
-- 🔄 **Persistence Support** - Make installations survive firmware upgrades
-- 🛡️ **Safe Backups** - Automatic backup of original files before updates
-- ⚡ **Flexible Options** - Multiple flags for customized installations
+- 🚀 **Automatic Updates** – Fetches and installs the latest AdGuard Home version
+- 📦 **Tiny Version Support** – Uses pre-compressed binaries optimized for GL.iNet routers (6 MB vs 32 MB)
+- 🎯 **Version Selection** – Install specific AdGuard Home versions
+- 💾 **Query Logging Control** – Optionally enable query logging to file
+- 🔄 **Persistence Support** – Make installations survive firmware upgrades
+- 🛡️ **Safe Backups** – Automatic backup of original files before updates
+- ⚡ **Flexible Options** – Multiple flags for customized installations
 
 ---
 
@@ -53,7 +58,7 @@ Works on nearly all GL.iNet routers
 Run the updater without cloning the repository:
 
 ```bash
-wget -O update-adguardhome.sh https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh && sh update-adguardhome.sh
+wget -q https://get.admon.me/adguard -O update-adguardhome.sh ; sh update-adguardhome.sh
 ```
 
 > ⚠️ **Important:** Do not run this script as a cron job! Manual execution is recommended.
@@ -78,7 +83,7 @@ The `update-adguardhome.sh` script supports the following arguments:
 Update to the latest stable release:
 
 ```bash
-wget -O update-adguardhome.sh https://raw.githubusercontent.com/Admonstrator/glinet-adguard-updater/main/update-adguardhome.sh && sh update-adguardhome.sh
+wget -q https://get.admon.me/adguard -O update-adguardhome.sh ; sh update-adguardhome.sh
 ```
 
 ### Select a Specific Version
@@ -86,7 +91,7 @@ wget -O update-adguardhome.sh https://raw.githubusercontent.com/Admonstrator/gli
 Install a specific AdGuard Home version:
 
 ```bash
-sh update-adguardhome.sh --select-release
+wget -q https://get.admon.me/adguard -O update-adguardhome.sh ; sh update-adguardhome.sh --select-release
 ```
 
 The script will display available releases for you to choose from.
@@ -96,7 +101,7 @@ The script will display available releases for you to choose from.
 For devices with limited free space (⚠️ use with caution):
 
 ```bash
-sh update-adguardhome.sh --ignore-free-space
+wget -q https://get.admon.me/adguard -O update-adguardhome.sh ; sh update-adguardhome.sh --ignore-free-space
 ```
 
 > **⚠️ Warning:** This disables safety checks and backup creation. Could potentially break your router if there's not enough free space!
@@ -195,9 +200,14 @@ If issues persist after manual revert, you can restore AdGuard Home to its origi
 
 ---
 
-## 💬 Feedback
+## 💡 Getting Help
 
-Have questions or feedback? Join the discussion in the [GL.iNet forum](https://forum.gl-inet.com/t/script-update-adguard-home/39398).
+Need assistance or have questions?
+
+- 💬 [Join the discussion on GL.iNet Forum](https://forum.gl-inet.com/t/script-update-adguard-home/39398) – Community support
+- 💬 [Join GL.iNet Discord](https://link.gl-inet.com/website-discord-support) – Real-time chat
+- 🐛 [Report issues on GitHub](https://github.com/Admonstrator/glinet-adguard-updater/issues) – Bug reports and feature requests
+- 📧 Contact via forum private message – For private inquiries
 
 ---
 
@@ -205,33 +215,70 @@ Have questions or feedback? Join the discussion in the [GL.iNet forum](https://f
 
 This script is provided **as-is** without any warranty. Use it at your own risk.
 
-**It's in an early stage and not ready for production use.**
-
-**It may potentially:**
+It may potentially:
 - 🔥 Break your router, computer, or network
-- 🔥 Cause data loss or configuration issues
-- 🔥 Result in an unusable device requiring firmware reflash
+- 🔥 Cause unexpected system behavior
 - 🔥 Even burn down your house (okay, probably not, but you get the idea)
 
 **You have been warned!**
 
+Always read the documentation carefully and understand what a script does before running it.
+
 ---
 
-## 💖 Support the Project
+## 👥 Contributors
 
-If you find this script helpful, consider supporting its development:
+Special thanks to:
 
-[![GitHub Sponsors](https://img.shields.io/badge/Sponsor%20on-GitHub-EA4AAA?style=for-the-badge&logo=github)](https://github.com/sponsors/admonstrator)
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/admon)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/admon)
-[![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/aaronviehl)
+- All the testers and feedback providers in the GL.iNet forum!
+- Copilot – Yeah, I am using AI to help write code. But I review and test everything thoroughly!
+
+Want to contribute? Pull requests are welcome!
+
+---
+
+## 🤝 Sponsors
+
+This project is proudly supported by:
+
+<div align="center">
+
+<img src="./images/termius-logo.webp" width="300" alt="Termius Logo" style="border-radius: 10px; margin: 20px 0;">
+
+**[Termius](https://termius.com/)** - The SSH client that works everywhere
+
+Termius provides powerful SSH client solutions for developers and system administrators. Perfect for managing your GL.iNet router and other infrastructure from anywhere.
+
+</div>
+
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by [Admon](https://github.com/Admonstrator)**
+## 🧰 Part of the GL.iNet Toolbox
 
-[⬆ Back to Top](#adguard-home-updater-for-glinet-routers)
+This project is part of a comprehensive collection of tools for GL.iNet routers.
+
+**Explore more tools and utilities:**
+
+[![GL.iNet Toolbox](https://img.shields.io/badge/🧰_GL.iNet_Toolbox-Explore_All_Tools-blue?style=for-the-badge)](https://github.com/Admonstrator/glinet-toolbox)
+
+*Discover Tailscale Updater, ACME Certificate Manager, and more community-driven projects!*
+
+</div>
+
+---
+
+<div align="center">
+
+**Made with ❤️ by [Admon](https://github.com/Admonstrator) for the GL.iNet Community**
+
+⭐ If you find this useful, please star the repository!
 
 </div>
