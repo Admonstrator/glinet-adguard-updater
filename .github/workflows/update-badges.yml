@@ -15,10 +15,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get latest AdGuard Home release
+      - name: Get latest AdGuard Home release from this repo
         id: adguard_release
         run: |
-          LATEST_VERSION=$(curl -s https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest | jq -r '.tag_name')
+          LATEST_VERSION=$(curl -s https://api.github.com/repos/Admonstrator/glinet-adguard-updater/releases/latest | jq -r '.tag_name')
           echo "version=${LATEST_VERSION}" >> $GITHUB_OUTPUT
           echo "Latest AdGuard Home version: ${LATEST_VERSION}"
 
