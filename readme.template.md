@@ -237,22 +237,6 @@ Want to contribute? Pull requests are welcome!
 
 ---
 
-## 🤝 Sponsors
-
-This project is proudly supported by:
-
-<div align="center">
-
-<img src="./images/termius-logo.webp" width="300" alt="Termius Logo" style="border-radius: 10px; margin: 20px 0;">
-
-**[Termius](https://termius.com/)** - The SSH client that works everywhere
-
-Termius provides powerful SSH client solutions for developers and system administrators. Perfect for managing your GL.iNet router and other infrastructure from anywhere.
-
-</div>
-
----
-
 ## 📜 License
 
 This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
